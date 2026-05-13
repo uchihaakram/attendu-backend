@@ -11,3 +11,8 @@ Route::get('/user', function (Request $request) {
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::apiResource('students', StudentController::class);
 });
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::apiResource('students', StudentController::class);
+
+});

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('phone_number')->nullable();
             $table->enum('gender', ['male', 'female'])->nullable();
             $table->string('national_id')->nullable();
-            $table->string('image')->nullable();
+            $table->string('face_image')->nullable();
             $table->enum('academic_year', ['first', 'second', 'third', 'fourth'])->nullable();
             $table->timestamp('registered_at')->nullable();
             $table->timestamps();
