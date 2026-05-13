@@ -5,7 +5,7 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class RegisterRequest extends FormRequest
+class CreateInstructorRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -26,9 +26,9 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', 'regex:/^[\p{L}\s\-\']+$/u'],
             'email' => ['required', 'email', 'lowercase', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\+\-\s\(\)]+$/'],
-            'gender' => [ 'string', 'in:male,female,other'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'password_confirmation' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'gender' => ['required', 'string', 'in:male,female,other'],
+
         ];
     }
     public function messages(): array
@@ -41,14 +41,13 @@ class RegisterRequest extends FormRequest
             'email.required' => 'الايميل مطلوب',
             'email.email' => 'البريد الإلكتروني يجب أن يكون عنوان بريد إلكتروني صالح',
             'email.unique' => 'البريد الإلكتروني مستخدم بالفعل',
-            'phone.string' => 'رقم الهاتف يجب أن يكون نصًا',
-            'phone.max' => 'رقم الهاتف لا يجب أن يتجاوز 20 حرفًا',
-            'phone.regex' => 'رقم الهاتف غير صحيح',
-            'gender.in' => 'الجنس غير صحيح',
             'password.required' => 'كلمة المرور مطلوبة',
-            'password.min' => 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
+            'password.string' => 'كلمة المرور يجب أن تكون نصًا',
+            'password.min' => 'كلمة المرور لا يجب أن تقل عن 6 أحرف',
             'password.confirmed' => 'تأكيد كلمة المرور غير متطابق',
-            'password_confirmation.required' => 'تأكيد كلمة المرور مطلوب',
+            'gender.required' => 'الجنس مطلوب',
+            'gender.string' => 'الجنس يجب أن يكون نصًا',
+            'gender.in' => 'الجنس غير صحيح',
         ];
     }
 }

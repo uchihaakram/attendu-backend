@@ -15,9 +15,7 @@ class StudentFaceEnrollController extends Controller
         $request->validate([
             'student_id' => 'required|exists:students,id',
         ]);
-
         $student = Student::findOrFail($request->student_id);
-
         $fullPath = storage_path('app/public/' . $student->face_image);
         if (!file_exists($fullPath)) {
             return response()->json([
@@ -25,10 +23,12 @@ class StudentFaceEnrollController extends Controller
                 'message' => 'Image not found on server'
             ], 404);
         }
-        // $aiurl = env('AI_SERVICE_URL') . '/enroll';
-        $aiurl = url('/api/mock/enroll');
-        $response = Http::attach(
-            'image', // ⚠️ خليها image (الأشهر)
+        $aiurl = env('AI_SERVICE_URL') . '/upload-image';
+        // $aiurl = url('/api/mock/enroll');
+        $response = $response = Http::timeout(30)->withHeaders([
+        'X-API-KEY' => env('AI_API_KEY')
+    ])->attach(
+            'file', // ⚠️ خليها image (الأشهر)
             file_get_contents($fullPath),
             basename($fullPath)
         )->post($aiurl, [
@@ -36,9 +36,11 @@ class StudentFaceEnrollController extends Controller
         ]);
 
         if (!$response->successful()) {
+
             return response()->json([
                 'status' => false,
-                'message' => 'AI enrollment failed'
+                'ai_status' => $response->status(),
+                'ai_response' => $response->body(),
             ], 500);
         }
 

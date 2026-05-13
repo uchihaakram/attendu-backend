@@ -23,13 +23,12 @@ class AuthController extends Controller
                 'message' => 'الحساب موجود بالفعل'
             ], 409); // 409 Conflict
         }
-
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'gender' => $request->gender,
-            'role' => $request->role ?? 'instructor',
+            'role' => 'instructor',
             'password' => Hash::make($request->password),
         ]);
 

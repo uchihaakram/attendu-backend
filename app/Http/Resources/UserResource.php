@@ -18,7 +18,7 @@ return [
         'id' => $this->id,
         'name' => $this->name,
         'email' => $this->email,
-        'role' => $this->role,
+        // 'role' => $this->role,
         'phone' => $this->phone,
         'gender' => $this->gender,
         // متعمد مش راجع created_at ولا updated_at
