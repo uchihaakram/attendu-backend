@@ -7,12 +7,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-//student routes
-Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+// Student API routes
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('students', StudentController::class);
-});
-Route::middleware('auth:sanctum')->group(function () {
-
-    Route::apiResource('students', StudentController::class);
-
 });

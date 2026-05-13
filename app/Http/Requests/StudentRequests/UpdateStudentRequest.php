@@ -22,24 +22,59 @@ class UpdateStudentRequest extends FormRequest
      */
     public function rules(): array
     {
+        $id = $this->route('id');
+
         return [
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:students,email',
-            'enrollment_number' => 'sometimes|string|unique:students,enrollment_number',
-            'course' => 'sometimes|string|max:255',
+            'student_code' => [
+                'required',
+                'string',
+                'unique:students,student_code,' . $id
+            ],
+
+            'email' => [
+                'required',
+                'email',
+                'unique:students,email,' . $id
+            ],
+
+            'phone_number' => ['nullable', 'string'],
+
+            'gender' => ['nullable', 'in:male,female'],
+
+            'national_id' => ['nullable', 'string'],
+
+            'academic_year' => ['nullable', 'in:first,second,third,fourth'],
+
+            'registered_at' => ['nullable', 'date'],
+
+            'face_image' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png',
+                'max:4096'
+            ],
         ];
     }
     public function messages(): array
     {
         return [
-            'name.string' => 'The name must be a string.',
-            'name.max' => 'The name may not be greater than 255 characters.',
-            'email.email' => 'The email must be a valid email address.',
-            'email.unique' => 'The email has already been taken.',
-            'enrollment_number.string' => 'The enrollment number must be a string.',
-            'enrollment_number.unique' => 'The enrollment number has already been taken.',
-            'course.string' => 'The course must be a string.',
-            'course.max' => 'The course may not be greater than 255 characters.',
+            'student_code.string' => 'كود الطالب يجب أن يكون نصًا.',
+            'student_code.max' => 'كود الطالب لا يجب أن يتجاوز 255 حرف.',
+            'student_code.unique' => 'كود الطالب يجب أن يكون فريدًا.',
+            'email.email' => 'البريد الإلكتروني يجب أن يكون عنوانًا صحيحًا.',
+            'email.unique' => 'البريد الإلكتروني يجب أن يكون فريدًا.',
+            'phone_number.string' => 'رقم الهاتف يجب أن يكون نصًا.',
+            'phone_number.max' => 'رقم الهاتف لا يجب أن يتجاوز 20 حرف.',
+            'gender.in' => 'الجنس يجب أن يكون ذكرًا أو أنثى.',
+            'national_id.string' => 'رقم الهوية يجب أن يكون نصًا.',
+            'national_id.max' => 'رقم الهوية لا يجب أن يتجاوز 50 حرف.',
+            'academic_year.in' => 'السنة الأكاديمية يجب أن تكون من بين: first, second, third, fourth.',
+            'registered_at.date' => 'تاريخ التسجيل يجب أن يكون تاريخًا صالحًا.',
+            'face_image.image' => 'صورة الوجه يجب أن تكون صورة.',
+            'face_image.mimes' => 'صورة الوجه يجب أن تكون من نوع: jpg, jpeg, png.',
+            'face_image.max' => 'صورة الوجه لا يجب أن تتجاوز 4 ميجابايت.',
+             'face_image' => 'صورة الوجه يجب أن تكون صورة من نوع jpg, jpeg, png ولا تتجاوز 4 ميجابايت.',
+
         ];
     }
 }

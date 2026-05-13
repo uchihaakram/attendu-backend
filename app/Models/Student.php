@@ -14,18 +14,20 @@ use App\Models\CourseEnrollment;
 class Student extends Model
 {
     use HasFactory;
-
-    protected $fillable = [
-        'student_code',
-        'email',
-        'phone_number',
-        'gender',
-        'national_id',
-        'image',
-        'face_profile_id',
-        'academic_year',
-        'registered_at',
-    ];
+    protected $guarded = [];
+    // protected $fillable = [
+    //     'first_name',
+    //     'last_name',
+    //     'student_code',
+    //     'email',
+    //     'phone_number',
+    //     'gender',
+    //     'national_id',
+    //     'image',
+    //     'face_profile_id',
+    //     'academic_year',
+    //     'registered_at',
+    // ];
 
     protected $casts = [
         'registered_at' => 'datetime',

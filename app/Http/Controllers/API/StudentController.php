@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Http\Requests\StudentRequests\UpdateStudentRequest;
 use Illuminate\Http\Request;
 use App\Models\Student;
 use App\Http\Resources\StudentResource;
-use App\Http\Requests\StudentRequest;
-use App\Models\FaceEmbedding;
+use App\Http\Requests\StudentRequests\StoreStudentRequest;
 
 class StudentController extends \App\Http\Controllers\Controller
 {
@@ -15,65 +15,59 @@ class StudentController extends \App\Http\Controllers\Controller
      */
     public function index()
     {
-        $students = Student::with('faceEmbeddings')->get();
-        return StudentResource::collection($students);
+        return response()->json([
+            'status' => true,
+            'data' => StudentResource::collection(Student::all())
+        ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StudentRequest $request)
-    {
-        $data = $request->validated();
+   public function store(StoreStudentRequest $request)
+{
+    $data = $request->validated();
 
-        if (isset($data['phone'])) {
-            $data['phone_number'] = $data['phone'];
-            unset($data['phone']);
-        }
+    if ($request->hasFile('face_image')) {
 
-        $student = Student::create($data);
-
-        if ($request->has('face_embeddings')) {
-            foreach ($request->face_embeddings as $embeddingData) {
-                FaceEmbedding::create([
-                    'student_id' => $student->id,
-                    'embedding' => $embeddingData['embedding'],
-                    'confidence' => $embeddingData['confidence'],
-                ]);
-            }
-        }
-
-        $student->load('faceEmbeddings');
-
-        return new StudentResource($student);
+        $data['face_image'] = $request->file('face_image')
+            ->store('students/faces', 'public');
     }
+
+    $student = Student::create($data);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Student created successfully',
+        'data' => new StudentResource($student)
+    ], 201);
+}
 
     /**
      * Display the specified resource.
      */
     public function show(string $id)
     {
-        $student = Student::with('faceEmbeddings')->findOrFail($id);
-        return new StudentResource($student);
+        return response()->json([
+            'status' => true,
+            'data' => new StudentResource(Student::findOrFail($id))
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(StudentRequest $request, string $id)
+    public function update(UpdateStudentRequest $request, string $id)
     {
         $student = Student::findOrFail($id);
-        $data = $request->validated();
 
-        if (isset($data['phone'])) {
-            $data['phone_number'] = $data['phone'];
-            unset($data['phone']);
-        }
+        $student->update($request->validated());
 
-        $student->update($data);
-        $student->load('faceEmbeddings');
-
-        return new StudentResource($student);
+        return response()->json([
+            'status' => true,
+            'message' => 'Student updated successfully',
+            'data' => new StudentResource($student)
+        ]);
     }
 
     /**
@@ -81,9 +75,11 @@ class StudentController extends \App\Http\Controllers\Controller
      */
     public function destroy(string $id)
     {
-        $student = Student::findOrFail($id);
-        $student->delete();
+        Student::findOrFail($id)->delete();
 
-        return response()->json(['message' => 'Student deleted successfully']);
+        return response()->json([
+            'status' => true,
+            'message' => 'Student deleted successfully'
+        ]);
     }
 }
