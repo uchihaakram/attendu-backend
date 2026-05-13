@@ -1,6 +1,14 @@
 <?php
 
-use App\Http\Controllers\Api\model\StudentFaceController;
+use App\Http\Controllers\Api\AI_Model\StudentFaceEnrollController;
 use Illuminate\Support\Facades\Route;
+Route::post('/ai/enroll', [StudentFaceEnrollController::class, 'enroll']);
+//اختبار بس
+Route::post('/mock/enroll', function (\Illuminate\Http\Request $request) {
 
-Route::post('/students/{id}/face', [StudentFaceController::class, 'store']);
+    return response()->json([
+        'status' => true,
+        'message' => 'Mock AI: Enrollment successful',
+        'data' => $request->all()
+    ]);
+});
