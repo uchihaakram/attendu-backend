@@ -8,8 +8,6 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 // Authentication Routes
-//register
-// Route::post('/register', [App\Http\Controllers\API\Auth\AuthController::class, 'register']);
 //login
 Route::post('/login', [App\Http\Controllers\API\Auth\AuthController::class, 'login']);
 //logout and me routes are protected by sanctum middleware
