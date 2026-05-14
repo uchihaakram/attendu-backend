@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('course_id')->constrained()->cascadeOnDelete();
             $table->foreignId('group_id')->constrained()->cascadeOnDelete();
-            $table->string('session_type');
+            $table->enum('session_type', ['lecture', 'section', 'lab'])->default('lecture');
             $table->date('session_date');
             $table->string('day');
             $table->time('start_time')->nullable();
@@ -25,6 +25,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('sessions');
+        Schema::dropIfExists('SessionSchedules');
     }
 };

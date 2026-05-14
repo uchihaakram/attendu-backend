@@ -14,7 +14,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::where('role', '=', 'instructor', false)
+        $users = User::where('role', '=', 'instructor')
             ->latest()
             ->paginate(10);
 
@@ -41,6 +41,7 @@ class UserController extends Controller
             'role' => 'instructor',
 
             'password' => Hash::make($request->password),
+            'password_confirmation' => Hash::make($request->password_confirmation),
         ]);
 
         return response()->json([
@@ -55,7 +56,7 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
-        $user = User::where('role', '=', 'instructor', false)
+        $user = User::where('role', '=', 'instructor')
             ->findOrFail($id);
 
         return response()->json([
@@ -69,7 +70,7 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
-        $user = User::where('role', '=', 'instructor', false)
+        $user = User::where('role', '=', 'instructor')
             ->findOrFail($id);
 
         $user->delete();

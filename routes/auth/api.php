@@ -9,7 +9,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 // Authentication Routes
 //register
-Route::post('/register', [App\Http\Controllers\API\Auth\AuthController::class, 'register']);
+// Route::post('/register', [App\Http\Controllers\API\Auth\AuthController::class, 'register']);
 //login
 Route::post('/login', [App\Http\Controllers\API\Auth\AuthController::class, 'login']);
 //logout and me routes are protected by sanctum middleware
@@ -17,14 +17,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [App\Http\Controllers\API\Auth\AuthController::class, 'logout']);
     Route::get('/me', [App\Http\Controllers\API\Auth\AuthController::class, 'me']);
 });
-// Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
-//     // instructors management
-//     Route::get('/users', [UserController::class, 'index']);
+    // instructors management
+    Route::get('/users', [UserController::class, 'index']);
 
-//     Route::post('/users/instructor', [UserController::class, 'createInstructor']);
+    Route::post('/users/instructor', [UserController::class, 'createInstructor']);
 
-//     Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
 
-//     Route::delete('/users/{id}', [UserController::class, 'destroy']);
-// });
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+});

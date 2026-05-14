@@ -28,6 +28,8 @@ class CreateInstructorRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9\+\-\s\(\)]+$/'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'gender' => ['required', 'string', 'in:male,female,other'],
+            'role' => ['instructor'],
+            'password_confirmation' => ['required_with:password', 'same:password'],
 
         ];
     }
