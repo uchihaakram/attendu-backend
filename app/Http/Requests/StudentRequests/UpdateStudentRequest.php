@@ -17,11 +17,6 @@ class UpdateStudentRequest extends FormRequest
 
         return [
 
-            'student_code' => [
-                'sometimes',
-                'string',
-                'unique:students,student_code,' . $id
-            ],
 
             'email' => [
                 'sometimes',
@@ -66,9 +61,6 @@ class UpdateStudentRequest extends FormRequest
     public function messages(): array
     {
         return [
-
-            'student_code.unique' =>
-                'كود الطالب مستخدم بالفعل.',
 
             'email.email' =>
                 'البريد الإلكتروني غير صالح.',

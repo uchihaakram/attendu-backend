@@ -9,15 +9,22 @@ use App\Http\Requests\StudentRequests\StoreStudentRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class StudentController extends \App\Http\Controllers\Controller
 {
     public function index()
     {
+        $students = Student::all();
+
         return response()->json([
             'status' => true,
-            'data' => StudentResource::collection(Student::all())
-        ]);
+            'message' => $students->isEmpty()
+                ? 'عفوا لا يوجد بيانات للعرض'
+                : null,
+
+            'data' => StudentResource::collection($students)
+        ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     // ✅ Store Student + AI Enrollment
@@ -67,7 +74,6 @@ class StudentController extends \App\Http\Controllers\Controller
                 'message' => 'Student created successfully',
                 'data' => new StudentResource($student)
             ], 201);
-
         } catch (\Exception $e) {
 
             DB::rollBack();
@@ -96,95 +102,114 @@ class StudentController extends \App\Http\Controllers\Controller
 
     // ✅ Update Student + AI Re-enrollment
     public function update(UpdateStudentRequest $request, string $id)
-{
-    $student = Student::findOrFail($id);
+    {
+        $student = Student::findOrFail($id);
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
+        try {
 
-        $data = $request->validated();
+            $data = $request->validated();
 
-        $oldImage = $student->face_image;
+            // منع تغيير student_code
+            unset($data['student_code']);
 
-        if ($request->hasFile('face_image')) {
-            $data['face_image'] = $request->file('face_image')
-                ->store('students/faces', 'public');
-        }
+            $oldImage = $student->face_image;
 
-        $student->update($data);
+            $newImagePath = null;
 
-        if ($request->hasFile('face_image')) {
+            // لو فيه صورة جديدة
+            if ($request->hasFile('face_image')) {
 
-            $updated = $this->updateFaceInAI($student->fresh());
+                $newImagePath = $request->file('face_image')
+                    ->store('students/faces', 'public');
 
-            if (!$updated) {
-
-                Storage::disk('public')->delete($data['face_image']);
-
-                DB::rollBack();
-
-                // ✅ رجّع الصورة القديمة
-                $student->face_image = $oldImage;
-                $student->save();
-
-                return response()->json([
-                    'status' => false,
-                    'message' => 'AI update failed'
-                ], 500);
+                $data['face_image'] = $newImagePath;
             }
 
+            // =====================================
+            // 🚨 AI FIRST (gate)
+            // =====================================
+
+            if ($request->hasFile('face_image')) {
+
+                $tempStudent = clone $student;
+                $tempStudent->face_image = $newImagePath;
+
+                $aiUpdated = $this->updateFaceInAI($tempStudent);
+
+                if (!$aiUpdated) {
+
+                    // rollback file
+                    if ($newImagePath) {
+                        Storage::disk('public')->delete($newImagePath);
+                    }
+
+                    DB::rollBack();
+
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'AI update failed - student not updated'
+                    ], 500);
+                }
+            }
+
+            // =====================================
+            // ✅ DB UPDATE ONLY AFTER AI SUCCESS
+            // =====================================
+
+            $student->update($data);
+
+            // delete old image after success
             if ($oldImage && Storage::disk('public')->exists($oldImage)) {
                 Storage::disk('public')->delete($oldImage);
             }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Student updated successfully',
+                'data' => new StudentResource($student->fresh())
+            ]);
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    // ✅ Delete Student + Delete AI Embedding
+    public function destroy(string $id)
+    {
+        $student = Student::findOrFail($id);
+
+        $deleted = $this->deleteFaceFromAI($student);
+
+        if (!$deleted) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to delete embedding from AI'
+            ], 500);
         }
 
-        DB::commit();
+        if (
+            $student->face_image &&
+            Storage::disk('public')->exists($student->face_image)
+        ) {
+            Storage::disk('public')->delete($student->face_image);
+        }
+
+        $student->delete();
 
         return response()->json([
             'status' => true,
-            'message' => 'Student updated successfully',
-            'data' => new StudentResource($student->fresh())
+            'message' => 'Student deleted successfully'
         ]);
-
-    } catch (\Exception $e) {
-
-        DB::rollBack();
-
-        return response()->json([
-            'status' => false,
-            'message' => $e->getMessage()
-        ], 500);
     }
-}
-    // ✅ Delete Student + Delete AI Embedding
-   public function destroy(string $id)
-{
-    $student = Student::findOrFail($id);
-
-    $deleted = $this->deleteFaceFromAI($student);
-
-    if (!$deleted) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Failed to delete embedding from AI'
-        ], 500);
-    }
-
-    if (
-        $student->face_image &&
-        Storage::disk('public')->exists($student->face_image)
-    ) {
-        Storage::disk('public')->delete($student->face_image);
-    }
-
-    $student->delete();
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Student deleted successfully'
-    ]);
-}
 
 
     // ─────────────────────────────────────
@@ -219,7 +244,6 @@ class StudentController extends \App\Http\Controllers\Controller
                 );
 
             return $response->successful();
-
         } catch (\Exception $e) {
 
             return false;
@@ -227,65 +251,67 @@ class StudentController extends \App\Http\Controllers\Controller
     }
 
     // ✅ Update Face
-   private function updateFaceInAI(Student $student): bool
-{
-    try {
+    private function updateFaceInAI(Student $student): bool
+    {
+        try {
 
-        $fullPath = storage_path('app/public/' . $student->face_image);
+            $fullPath = storage_path('app/public/' . $student->face_image);
 
-        if (!file_exists($fullPath)) {
+            if (!file_exists($fullPath)) {
+                return false;
+            }
+
+            $fieldName = 'face_image';
+            $endpoint = env('AI_SERVICE_URL')
+                . '/students/'
+                . $student->student_code
+                . '/image';
+
+
+
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'X-API-KEY' => env('AI_API_KEY')
+                ])
+                ->attach(
+                    $fieldName,
+                    fopen($fullPath, 'r'),
+                    basename($fullPath)
+                )
+                ->post($endpoint, [
+                    'student_code' => $student->student_code,
+                ]);
+
+
+
+            return $response->successful();
+        } catch (\Exception $e) {
+
             return false;
         }
-
-        $response = Http::timeout(30)
-            ->withHeaders([
-                'X-API-KEY' => env('AI_API_KEY')
-            ])
-            ->attach(
-                'file',
-                file_get_contents($fullPath),
-                basename($fullPath)
-            )
-            ->put(
-                env('AI_SERVICE_URL')
-                . '/students/'
-                . $student->student_code
-                . '/file'
-            );
-
-        return $response->successful();
-
-    } catch (\Exception $e) {
-
-        return false;
     }
-}
-
-
     // ✅ Delete Face Embedding
-   private function deleteFaceFromAI(Student $student): bool
-{
-    try {
+    private function deleteFaceFromAI(Student $student): bool
+    {
+        try {
 
-        $response = Http::timeout(30)
-            ->withHeaders([
-                'X-API-KEY' => env('AI_API_KEY')
-            ])
-            ->delete(
-                env('AI_SERVICE_URL')
-                . '/students/'
-                . $student->student_code
-            );
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'X-API-KEY' => env('AI_API_KEY')
+                ])
+                ->delete(
+                    env('AI_SERVICE_URL')
+                        . '/students/'
+                        . $student->student_code
+                );
 
-        return $response->successful();
+            return $response->successful();
+        } catch (\Exception $e) {
 
-    } catch (\Exception $e) {
-
-        return false;
+            return false;
+        }
     }
-}
 }
 
 
 // ✅ Delete Student + Delete AI Embedding
-
