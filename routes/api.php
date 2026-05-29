@@ -10,4 +10,6 @@ Route::get('/user', function (Request $request) {
 // Student API routes
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::apiResource('students', StudentController::class);
+    Route::post('students/{student}', [StudentController::class, 'update']);
+
 });

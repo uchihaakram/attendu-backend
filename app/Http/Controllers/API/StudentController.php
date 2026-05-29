@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Services\AIService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class StudentController extends Controller
 {
@@ -44,9 +45,9 @@ class StudentController extends Controller
         try {
 
             // upload image (DB field = face_image)
-            if ($request->hasFile('file')) {
+            if ($request->hasFile('face_image')) {
 
-                $imagePath = $request->file('file')
+                $imagePath = $request->file('face_image')
                     ->store('students/faces', 'public');
 
                 $data['face_image'] = $imagePath;
@@ -82,7 +83,6 @@ class StudentController extends Controller
                 'message' => 'Student created successfully',
                 'data' => new StudentResource($student)
             ], 201);
-
         } catch (\Exception $e) {
 
             DB::rollBack();
@@ -130,9 +130,9 @@ class StudentController extends Controller
             unset($data['student_code']);
 
             // upload new image
-            if ($request->hasFile('file')) {
+            if ($request->hasFile('face_image')) {
 
-                $newImagePath = $request->file('file')
+                $newImagePath = $request->file('face_image')
                     ->store('students/faces', 'public');
 
                 $data['face_image'] = $newImagePath;
@@ -164,8 +164,8 @@ class StudentController extends Controller
             // update DB
             $student->update($data);
 
-            // delete old image
-            if ($oldImage && Storage::disk('public')->exists($oldImage)) {
+            // delete old image only when a new image was uploaded
+            if ($newImagePath && $oldImage && Storage::disk('public')->exists($oldImage)) {
                 Storage::disk('public')->delete($oldImage);
             }
 
@@ -176,7 +176,6 @@ class StudentController extends Controller
                 'message' => 'Student updated successfully',
                 'data' => new StudentResource($student->fresh())
             ]);
-
         } catch (\Exception $e) {
 
             DB::rollBack();
@@ -222,7 +221,6 @@ class StudentController extends Controller
                 'status' => true,
                 'message' => 'Student deleted successfully'
             ]);
-
         } catch (\Exception $e) {
 
             return response()->json([

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AIService
 {
@@ -51,40 +52,26 @@ class AIService
     // ─────────────────────────────
     // UPDATE FACE
     // ─────────────────────────────
-    public function updateFace(string $filePath, string $studentCode): bool
-    {
-        try {
+public function updateFace(string $filePath, string $studentCode): bool
+{
+    try {
+        $fullPath = storage_path('app/public/' . $filePath);
 
-            $fullPath = storage_path('app/public/' . $filePath);
 
-            if (!file_exists($fullPath)) {
-                return false;
-            }
 
-            $endpoint = $this->baseUrl
-                . '/students/'
-                . $studentCode
-                . '/image';
+        $response = Http::timeout(50)
+            ->withHeaders(['X-API-KEY' => $this->apiKey])
+            ->attach('file', file_get_contents($fullPath), basename($fullPath))
+            ->post($this->baseUrl . '/students/' . $studentCode . '/image');
 
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'X-API-KEY' => $this->apiKey
-                ])
-                ->attach(
-                    'file',
-                    fopen($fullPath, 'r'),
-                    basename($fullPath)
-                )
-                ->post($endpoint, [
-                    'student_code' => $studentCode,
-                ]);
 
-            return $response->successful();
+        return $response->successful();
 
-        } catch (\Exception $e) {
-            return false;
-        }
+    } catch (\Exception $e) {
+        return false;
     }
+}
+
 
     // ─────────────────────────────
     // DELETE FACE
