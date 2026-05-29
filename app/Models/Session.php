@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Course;
 use App\Models\Group;
 use App\Models\Attendance;
-use App\Models\SessionInstructor;
 
 class Session extends Model
 {
@@ -30,8 +30,8 @@ class Session extends Model
 
     protected $casts = [
         'session_date' => 'date',
-        'start_time' => 'datetime:H:i:s',
-        'end_time' => 'datetime:H:i:s',
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
     ];
 
     public function course(): BelongsTo
@@ -46,17 +46,17 @@ class Session extends Model
 
     public function attendances(): HasMany
     {
-        return $this->hasMany(Attendance::class);
+        return $this->hasMany(Attendance::class, 'session_id');
     }
 
     public function instructors(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'session_instructors')
-            ->withTimestamps();
+        return $this->belongsToMany(User::class, 'session_instructors');
     }
 
-    public function sessionInstructors(): HasMany
+    public function attendancePolicy(): HasOne
     {
-        return $this->hasMany(SessionInstructor::class);
+        return $this->hasOne(AttendancePolicy::class, 'course_id', 'course_id');
     }
 }
+

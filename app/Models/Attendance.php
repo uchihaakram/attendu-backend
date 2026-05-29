@@ -10,10 +10,9 @@ class Attendance extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
     protected $fillable = [
         'student_id',
-        'session_id',
+        'session_schedule_id',
         'status',
         'check_in_time',
         'detection_method',

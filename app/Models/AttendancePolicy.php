@@ -13,10 +13,9 @@ class AttendancePolicy extends Model
     protected $fillable = [
         'course_id',
         'max_absences_allowed',
-        'min_attendance_percent',
-        'late_limit',
+        'min_attend',
+        'max_attend',
     ];
-
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);

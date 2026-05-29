@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Http;
+
+class AIService
+{
+    private string $baseUrl;
+    private string $apiKey;
+
+    public function __construct()
+    {
+        $this->baseUrl = config('services.ai.url');
+        $this->apiKey = config('services.ai.key');
+    }
+
+    // ─────────────────────────────
+    // ENROLL FACE
+    // ─────────────────────────────
+    public function enrollFace(string $filePath, string $studentCode): bool
+    {
+        try {
+
+            $fullPath = storage_path('app/public/' . $filePath);
+
+            if (!file_exists($fullPath)) {
+                return false;
+            }
+
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'X-API-KEY' => $this->apiKey
+                ])
+                ->attach(
+                    'file',
+                    file_get_contents($fullPath),
+                    basename($fullPath)
+                )
+                ->post($this->baseUrl . '/upload-image', [
+                    'student_code' => $studentCode,
+                ]);
+
+            return $response->successful();
+
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    // ─────────────────────────────
+    // UPDATE FACE
+    // ─────────────────────────────
+    public function updateFace(string $filePath, string $studentCode): bool
+    {
+        try {
+
+            $fullPath = storage_path('app/public/' . $filePath);
+
+            if (!file_exists($fullPath)) {
+                return false;
+            }
+
+            $endpoint = $this->baseUrl
+                . '/students/'
+                . $studentCode
+                . '/image';
+
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'X-API-KEY' => $this->apiKey
+                ])
+                ->attach(
+                    'file',
+                    fopen($fullPath, 'r'),
+                    basename($fullPath)
+                )
+                ->post($endpoint, [
+                    'student_code' => $studentCode,
+                ]);
+
+            return $response->successful();
+
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    // ─────────────────────────────
+    // DELETE FACE
+    // ─────────────────────────────
+    public function deleteFace(string $studentCode): bool
+    {
+        try {
+
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'X-API-KEY' => $this->apiKey
+                ])
+                ->delete($this->baseUrl . '/students/' . $studentCode);
+
+            return $response->successful();
+
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+}
