@@ -16,6 +16,8 @@ class Session extends Model
 {
     use HasFactory;
 
+    protected $table = 'sessionschedules'; // ← ضيف السطر ده
+
     protected $fillable = [
         'course_id',
         'group_id',
@@ -46,12 +48,17 @@ class Session extends Model
 
     public function attendances(): HasMany
     {
-        return $this->hasMany(Attendance::class, 'session_id');
+        return $this->hasMany(Attendance::class, 'session_schedule_id');
     }
 
     public function instructors(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'session_instructors');
+        return $this->belongsToMany(
+            User::class,
+            'session_instructors',
+            'session_schedule_id',  // foreign key في pivot table
+            'user_id'
+        )->withTimestamps();
     }
 
     public function attendancePolicy(): HasOne
@@ -59,4 +66,3 @@ class Session extends Model
         return $this->hasOne(AttendancePolicy::class, 'course_id', 'course_id');
     }
 }
-

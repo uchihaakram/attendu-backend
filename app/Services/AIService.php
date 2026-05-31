@@ -43,7 +43,6 @@ class AIService
                 ]);
 
             return $response->successful();
-
         } catch (\Exception $e) {
             return false;
         }
@@ -52,25 +51,24 @@ class AIService
     // ─────────────────────────────
     // UPDATE FACE
     // ─────────────────────────────
-public function updateFace(string $filePath, string $studentCode): bool
-{
-    try {
-        $fullPath = storage_path('app/public/' . $filePath);
+    public function updateFace(string $filePath, string $studentCode): bool
+    {
+        try {
+            $fullPath = storage_path('app/public/' . $filePath);
 
 
 
-        $response = Http::timeout(50)
-            ->withHeaders(['X-API-KEY' => $this->apiKey])
-            ->attach('file', file_get_contents($fullPath), basename($fullPath))
-            ->post($this->baseUrl . '/students/' . $studentCode . '/image');
+            $response = Http::timeout(50)
+                ->withHeaders(['X-API-KEY' => $this->apiKey])
+                ->attach('file', file_get_contents($fullPath), basename($fullPath))
+                ->post($this->baseUrl . '/students/' . $studentCode . '/image');
 
 
-        return $response->successful();
-
-    } catch (\Exception $e) {
-        return false;
+            return $response->successful();
+        } catch (\Exception $e) {
+            return false;
+        }
     }
-}
 
 
     // ─────────────────────────────
@@ -87,8 +85,32 @@ public function updateFace(string $filePath, string $studentCode): bool
                 ->delete($this->baseUrl . '/students/' . $studentCode);
 
             return $response->successful();
-
         } catch (\Exception $e) {
+            return false;
+        }
+    }
+    public function startSession(array $payload): array|bool
+    {
+        try {
+
+            $response = Http::timeout(60)
+
+                ->withHeaders([
+                    'X-API-KEY' => $this->apiKey
+                ])
+
+                ->post(
+                    $this->baseUrl . '/start-session',
+                    $payload
+                );
+
+            if (!$response->successful()) {
+                return false;
+            }
+
+            return $response->json();
+        } catch (\Exception $e) {
+
             return false;
         }
     }

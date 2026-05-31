@@ -10,6 +10,7 @@ class AttendancePolicy extends Model
 {
     use HasFactory;
 
+    protected $table = 'attendance_policies';
     protected $fillable = [
         'course_id',
         'max_absences_allowed',

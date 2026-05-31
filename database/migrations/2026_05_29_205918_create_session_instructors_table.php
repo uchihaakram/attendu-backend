@@ -10,11 +10,14 @@ return new class extends Migration
     {
         Schema::create('session_instructors', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('SessionSchedules_id')->referencedTable('SessionSchedules')->cascadeOnDelete();
+            $table->foreignId('session_schedule_id')
+                ->references('id')
+                ->on('sessionschedules')
+                ->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
 
-            $table->unique(['SessionSchedules_id', 'user_id']);
+            $table->unique(['session_schedule_id', 'user_id']);
         });
     }
 

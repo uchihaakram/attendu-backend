@@ -14,6 +14,7 @@ use App\Models\CourseEnrollment;
 class Student extends Model
 {
     use HasFactory;
+    protected $table = 'students';
     protected $guarded = [];
     // protected $fillable = [
     //     'first_name',
