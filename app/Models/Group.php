@@ -21,6 +21,7 @@ class Group extends Model
         'course_id',
         'group_name',
         'group_code',
+        'academic_year',
     ];
 
     public function course(): BelongsTo

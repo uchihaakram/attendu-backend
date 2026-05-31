@@ -10,6 +10,7 @@ use App\Models\Group;
 use App\Models\AttendancePolicy;
 use App\Models\Session;
 use App\Models\Student;
+use App\Models\CourseEnrollment;
 
 class DatabaseSeeder extends Seeder
 {
@@ -46,8 +47,8 @@ class DatabaseSeeder extends Seeder
         $math = Course::firstOrCreate(
             ['course_code' => 'MATH101'],
             [
-                'course_name' => 'الرياضيات',
-                'description' => 'مقرر الرياضيات للفرقة الأولى',
+                'course_name' => 'computer vision',
+                'description' => 'مقرر الرؤية الحاسوبية',
                 'start_date'  => '2024-09-01',
                 'end_date'    => '2025-01-31',
             ]
@@ -56,29 +57,31 @@ class DatabaseSeeder extends Seeder
         $physics = Course::firstOrCreate(
             ['course_code' => 'PHYS101'],
             [
-                'course_name' => 'الفيزياء',
-                'description' => 'مقرر الفيزياء للفرقة الثانية',
+                'course_name' => 'web development',
+                'description' => 'مقرر تطوير الويب',
                 'start_date'  => '2024-09-01',
                 'end_date'    => '2025-01-31',
             ]
         );
 
         // ─────────────────────────────
-        // 3. GROUPS
+        // 3. GROUPS (مع academic_year)
         // ─────────────────────────────
         $group1 = Group::firstOrCreate(
             ['group_code' => 'GRP-001'],
             [
-                'course_id'  => $math->id,
-                'group_name' => 'الفرقة الأولى',
+                'course_id'     => $math->id,
+                'group_name'    => 'عام',
+                'academic_year' => 'first',
             ]
         );
 
         $group2 = Group::firstOrCreate(
             ['group_code' => 'GRP-002'],
             [
-                'course_id'  => $physics->id,
-                'group_name' => 'الفرقة الثانية',
+                'course_id'     => $physics->id,
+                'group_name'    => 'برامج SW',
+                'academic_year' => 'second',
             ]
         );
 
@@ -141,50 +144,78 @@ class DatabaseSeeder extends Seeder
         // ─────────────────────────────
         // 6. SESSION INSTRUCTORS
         // ─────────────────────────────
-        // syncWithoutDetaching عشان ميكررش لو موجود
         $session1->instructors()->syncWithoutDetaching([$instructor->id]);
         $session2->instructors()->syncWithoutDetaching([$instructor->id]);
 
         // ─────────────────────────────
         // 7. STUDENTS
         // ─────────────────────────────
-        Student::firstOrCreate(
+        $student1 = Student::firstOrCreate(
             ['student_code' => 'S001'],
             [
-                'first_name'    => 'محمد',
-                'last_name'     => 'علي',
-                'email'         => 'mohamed@student.com',
-                'gender'        => 'male',
-                'national_id'   => '12345678901234',
-                'face_image'    => 'default.jpg',
-                'academic_year' => 'first',
+                'first_name'  => 'محمد',
+                'last_name'   => 'علي',
+                'email'       => 'mohamed@student.com',
+                'gender'      => 'male',
+                'national_id' => '12345678901234',
+                'face_image'  => 'default.jpg',
             ]
         );
 
-        Student::firstOrCreate(
+        $student2 = Student::firstOrCreate(
             ['student_code' => 'S002'],
             [
-                'first_name'    => 'سارة',
-                'last_name'     => 'أحمد',
-                'email'         => 'sara@student.com',
-                'gender'        => 'female',
-                'national_id'   => '12345678901235',
-                'face_image'    => 'default.jpg',
-                'academic_year' => 'first',
+                'first_name'  => 'سارة',
+                'last_name'   => 'أحمد',
+                'email'       => 'sara@student.com',
+                'gender'      => 'female',
+                'national_id' => '12345678901235',
+                'face_image'  => 'default.jpg',
             ]
         );
 
-        Student::firstOrCreate(
+        $student3 = Student::firstOrCreate(
             ['student_code' => 'S003'],
             [
-                'first_name'    => 'عمر',
-                'last_name'     => 'حسن',
-                'email'         => 'omar@student.com',
-                'gender'        => 'male',
-                'national_id'   => '12345678901236',
-                'face_image'    => 'default.jpg',
-                'academic_year' => 'second',
+                'first_name'  => 'عمر',
+                'last_name'   => 'حسن',
+                'email'       => 'omar@student.com',
+                'gender'      => 'male',
+                'national_id' => '12345678901236',
+                'face_image'  => 'default.jpg',
             ]
+        );
+
+        // ─────────────────────────────
+        // 8. COURSE ENROLLMENTS
+        // ─────────────────────────────
+        // محمد وسارة في رياضيات - السنة الأولى
+        CourseEnrollment::firstOrCreate(
+            [
+                'student_id' => $student1->id,
+                'group_id'   => $group1->id,
+                'course_id'  => $math->id,
+            ],
+            ['enrolled_at' => now()]
+        );
+
+        CourseEnrollment::firstOrCreate(
+            [
+                'student_id' => $student2->id,
+                'group_id'   => $group1->id,
+                'course_id'  => $math->id,
+            ],
+            ['enrolled_at' => now()]
+        );
+
+        // عمر في فيزياء - السنة الثانية
+        CourseEnrollment::firstOrCreate(
+            [
+                'student_id' => $student3->id,
+                'group_id'   => $group2->id,
+                'course_id'  => $physics->id,
+            ],
+            ['enrolled_at' => now()]
         );
 
         $this->command->info('✅ تم إضافة البيانات التجريبية بنجاح!');

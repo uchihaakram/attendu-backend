@@ -37,7 +37,6 @@ class StoreStudentRequest extends FormRequest
                 'max:10240', // 10 ميجابايت
                 'dimensions:min_width=500,min_height=650',
             ],
-            'academic_year' => ['nullable', 'in:first,second,third,fourth'],
         ];
     }
     public function messages(): array
@@ -68,7 +67,6 @@ class StoreStudentRequest extends FormRequest
             'face_image.mimes' => 'صورة الوجه يجب أن تكون من نوع: jpg, jpeg, png.',
             'face_image.max' => 'صورة الوجه لا يجب أن تتجاوز 10 ميجابايت.',
             'face_image.dimensions' => 'صورة الوجه يجب أن تكون بحجم mínimo 500x650 بكسل.',
-            'academic_year.in' => 'السنة الأكاديمية يجب أن تكون من بين: first, second, third, fourth.',
             'face_image' => 'صورة الوجه يجب أن تكون صورة من نوع jpg, jpeg, png ولا تتجاوز 10 ميجابايت.',
         ];
     }

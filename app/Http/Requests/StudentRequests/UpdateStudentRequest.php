@@ -39,11 +39,6 @@ class UpdateStudentRequest extends FormRequest
                 'string'
             ],
 
-            'academic_year' => [
-                'nullable',
-                'in:first,second,third,fourth'
-            ],
-
             'registered_at' => [
                 'nullable',
                 'date'
@@ -70,9 +65,6 @@ class UpdateStudentRequest extends FormRequest
 
             'gender.in' =>
                 'الجنس يجب أن يكون male أو female.',
-
-            'academic_year.in' =>
-                'السنة الدراسية غير صحيحة.',
 
             'registered_at.date' =>
                 'تاريخ التسجيل غير صالح.',

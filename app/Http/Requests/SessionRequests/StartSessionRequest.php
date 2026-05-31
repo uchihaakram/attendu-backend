@@ -14,49 +14,36 @@ class StartSessionRequest extends FormRequest
     public function rules(): array
     {
         return [
-
             'session_schedule_id' => [
                 'required',
-                'exists:SessionSchedules,id'
+                'exists:sessionschedules,id',
             ],
 
             'students' => [
                 'required',
                 'array',
-                'min:1'
+                'min:1',
             ],
 
             'students.*.student_code' => [
                 'required',
-                'string'
+                'string',
             ],
 
             'students.*.student_name' => [
                 'required',
-                'string'
-            ],
-
-            'min_attend' => [
-                'required',
-                'integer',
-                'min:0'
-            ],
-
-            'max_attend' => [
-                'required',
-                'integer',
-                'gt:min_attend'
+                'string',
             ],
 
             'start_time' => [
                 'required',
-                'date'
+                'date_format:H:i',
             ],
 
             'end_time' => [
                 'required',
-                'date',
-                'after:start_time'
+                'date_format:H:i',
+                'after:start_time',
             ],
         ];
     }
@@ -64,45 +51,22 @@ class StartSessionRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'session_schedule_id.required' => 'السيشن مطلوبة.',
+            'session_schedule_id.exists'   => 'السيشن غير موجودة.',
 
-            'session_schedule_id.required' =>
-                'جدول السيشن مطلوب.',
+            'students.required'   => 'قائمة الطلاب مطلوبة.',
+            'students.array'      => 'الطلاب يجب أن يكونوا array.',
+            'students.min'        => 'يجب إضافة طالب واحد على الأقل.',
 
-            'session_schedule_id.exists' =>
-                'جدول السيشن غير موجود.',
+            'students.*.student_code.required' => 'كود الطالب مطلوب.',
+            'students.*.student_name.required' => 'اسم الطالب مطلوب.',
 
-            'students.required' =>
-                'قائمة الطلاب مطلوبة.',
+            'start_time.required'    => 'وقت البداية مطلوب.',
+            'start_time.date_format' => 'وقت البداية يجب أن يكون بصيغة HH:MM.',
 
-            'students.array' =>
-                'الطلاب يجب أن يكونوا array.',
-
-            'students.min' =>
-                'يجب إضافة طالب واحد على الأقل.',
-
-            'students.*.student_code.required' =>
-                'كود الطالب مطلوب.',
-
-            'students.*.student_name.required' =>
-                'اسم الطالب مطلوب.',
-
-            'min_attend.required' =>
-                'الحد الأدنى للحضور مطلوب.',
-
-            'max_attend.required' =>
-                'الحد الأقصى للحضور مطلوب.',
-
-            'max_attend.gt' =>
-                'الحد الأقصى يجب أن يكون أكبر من الحد الأدنى.',
-
-            'start_time.required' =>
-                'وقت البداية مطلوب.',
-
-            'end_time.required' =>
-                'وقت النهاية مطلوب.',
-
-            'end_time.after' =>
-                'وقت النهاية يجب أن يكون بعد البداية.',
+            'end_time.required'    => 'وقت النهاية مطلوب.',
+            'end_time.date_format' => 'وقت النهاية يجب أن يكون بصيغة HH:MM.',
+            'end_time.after'       => 'وقت النهاية يجب أن يكون بعد البداية.',
         ];
     }
 }

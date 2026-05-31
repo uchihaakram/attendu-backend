@@ -26,7 +26,6 @@ class Student extends Model
     //     'national_id',
     //     'image',
     //     'face_profile_id',
-    //     'academic_year',
     //     'registered_at',
     // ];
 

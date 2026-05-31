@@ -20,14 +20,12 @@ class StudentController extends Controller
     // ─────────────────────────────
     public function index()
     {
-        $students = Student::all();
+        $students = Student::with('groups.course')->paginate(10);
 
         return response()->json([
-            'status' => true,
-            'message' => $students->isEmpty()
-                ? 'عفوا لا يوجد بيانات للعرض'
-                : null,
-            'data' => StudentResource::collection($students)
+            'status'  => true,
+            'message' => $students->isEmpty() ? 'عفوا لا يوجد بيانات للعرض' : null,
+            'data'    => StudentResource::collection($students),
         ]);
     }
 
@@ -36,63 +34,48 @@ class StudentController extends Controller
     // ─────────────────────────────
     public function store(StoreStudentRequest $request)
     {
-        $data = $request->validated();
+        $data      = $request->validated();
         $imagePath = null;
 
         DB::beginTransaction();
 
         try {
-
-            // upload image (DB field = face_image)
             if ($request->hasFile('face_image')) {
-
-                $imagePath = $request->file('face_image')
-                    ->store('students/faces', 'public');
-
+                $imagePath        = $request->file('face_image')->store('students/faces', 'public');
                 $data['face_image'] = $imagePath;
             }
 
-            // create student
             $student = Student::create($data);
 
-            // send to AI (AI expects file field internally)
             $enrolled = $this->aiService->enrollFace(
                 $student->face_image,
                 $student->student_code
             );
 
             if (!$enrolled) {
-
                 DB::rollBack();
-
-                if ($imagePath) {
-                    Storage::disk('public')->delete($imagePath);
-                }
+                if ($imagePath) Storage::disk('public')->delete($imagePath);
 
                 return response()->json([
-                    'status' => false,
-                    'message' => 'AI enrollment failed'
+                    'status'  => false,
+                    'message' => 'AI enrollment failed',
                 ], 500);
             }
 
             DB::commit();
 
             return response()->json([
-                'status' => true,
-                'message' => 'Student created successfully',
-                'data' => new StudentResource($student)
+                'status'  => true,
+                'message' => 'تم إضافة الطالب بنجاح',
+                'data'    => new StudentResource($student->load('groups.course')),
             ], 201);
         } catch (\Exception $e) {
-
             DB::rollBack();
-
-            if ($imagePath) {
-                Storage::disk('public')->delete($imagePath);
-            }
+            if ($imagePath) Storage::disk('public')->delete($imagePath);
 
             return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
+                'status'  => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -104,9 +87,9 @@ class StudentController extends Controller
     {
         return response()->json([
             'status' => true,
-            'data' => new StudentResource(
-                Student::findOrFail($id)
-            )
+            'data'   => new StudentResource(
+                Student::with('groups.course')->findOrFail($id)
+            ),
         ]);
     }
 
@@ -115,55 +98,40 @@ class StudentController extends Controller
     // ─────────────────────────────
     public function update(UpdateStudentRequest $request, string $id)
     {
-        $student = Student::findOrFail($id);
+        $student      = Student::findOrFail($id);
+        $newImagePath = null;
+        $oldImage     = $student->face_image;
 
         DB::beginTransaction();
 
-        $newImagePath = null;
-        $oldImage = $student->face_image;
-
         try {
-
             $data = $request->validated();
-
             unset($data['student_code']);
 
-            // upload new image
             if ($request->hasFile('face_image')) {
-
-                $newImagePath = $request->file('face_image')
-                    ->store('students/faces', 'public');
-
+                $newImagePath       = $request->file('face_image')->store('students/faces', 'public');
                 $data['face_image'] = $newImagePath;
             }
 
-            // AI FIRST
             if ($newImagePath) {
-
                 $aiUpdated = $this->aiService->updateFace(
                     $newImagePath,
                     $student->student_code
                 );
 
                 if (!$aiUpdated) {
-
                     DB::rollBack();
-
-                    if ($newImagePath) {
-                        Storage::disk('public')->delete($newImagePath);
-                    }
+                    if ($newImagePath) Storage::disk('public')->delete($newImagePath);
 
                     return response()->json([
-                        'status' => false,
-                        'message' => 'AI update failed - student not updated'
+                        'status'  => false,
+                        'message' => 'AI update failed - student not updated',
                     ], 500);
                 }
             }
 
-            // update DB
             $student->update($data);
 
-            // delete old image only when a new image was uploaded
             if ($newImagePath && $oldImage && Storage::disk('public')->exists($oldImage)) {
                 Storage::disk('public')->delete($oldImage);
             }
@@ -171,21 +139,17 @@ class StudentController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => true,
-                'message' => 'Student updated successfully',
-                'data' => new StudentResource($student->fresh())
+                'status'  => true,
+                'message' => 'تم تعديل الطالب بنجاح',
+                'data'    => new StudentResource($student->fresh('groups.course')),
             ]);
         } catch (\Exception $e) {
-
             DB::rollBack();
-
-            if ($newImagePath) {
-                Storage::disk('public')->delete($newImagePath);
-            }
+            if ($newImagePath) Storage::disk('public')->delete($newImagePath);
 
             return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
+                'status'  => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -198,15 +162,12 @@ class StudentController extends Controller
         $student = Student::findOrFail($id);
 
         try {
-
-            $deleted = $this->aiService->deleteFace(
-                $student->student_code
-            );
+            $deleted = $this->aiService->deleteFace($student->student_code);
 
             if (!$deleted) {
                 return response()->json([
-                    'status' => false,
-                    'message' => 'Failed to delete embedding from AI'
+                    'status'  => false,
+                    'message' => 'Failed to delete embedding from AI',
                 ], 500);
             }
 
@@ -217,14 +178,13 @@ class StudentController extends Controller
             $student->delete();
 
             return response()->json([
-                'status' => true,
-                'message' => 'Student deleted successfully'
+                'status'  => true,
+                'message' => 'تم حذف الطالب بنجاح',
             ]);
         } catch (\Exception $e) {
-
             return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
+                'status'  => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
