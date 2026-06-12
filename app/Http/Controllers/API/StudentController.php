@@ -7,6 +7,7 @@ use App\Http\Requests\StudentRequests\StoreStudentRequest;
 use App\Http\Requests\StudentRequests\UpdateStudentRequest;
 use App\Http\Resources\StudentResource;
 use App\Models\Student;
+use App\Models\Group;
 use App\Services\AIService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -35,18 +36,33 @@ class StudentController extends Controller
     public function store(StoreStudentRequest $request)
     {
         $data      = $request->validated();
+        $groupId   = $data['group_id'];
+        $courseIds = $data['course_ids'];
+        unset($data['group_id'], $data['course_ids']);
         $imagePath = null;
 
         DB::beginTransaction();
 
         try {
+            // رفع الصورة
             if ($request->hasFile('face_image')) {
-                $imagePath        = $request->file('face_image')->store('students/faces', 'public');
+                $imagePath          = $request->file('face_image')->store('students/faces', 'public');
                 $data['face_image'] = $imagePath;
             }
 
+            // إنشاء الطالب
             $student = Student::create($data);
 
+            // ربط الطالب بالجروب وكل الكورسات
+            foreach ($courseIds as $courseId) {
+                $student->courseEnrollments()->create([
+                    'group_id'    => $groupId,
+                    'course_id'   => $courseId,
+                    'enrolled_at' => now(),
+                ]);
+            }
+
+            // بعت الصورة للـ AI
             $enrolled = $this->aiService->enrollFace(
                 $student->face_image,
                 $student->student_code
@@ -58,7 +74,7 @@ class StudentController extends Controller
 
                 return response()->json([
                     'status'  => false,
-                    'message' => 'AI enrollment failed',
+                    'message' => 'فشل تسجيل الوجه في نظام الذكاء الاصطناعي',
                 ], 500);
             }
 
@@ -108,6 +124,11 @@ class StudentController extends Controller
             $data = $request->validated();
             unset($data['student_code']);
 
+            // لو في تغيير في الجروب أو الكورسات
+            $groupId   = $data['group_id']   ?? null;
+            $courseIds = $data['course_ids'] ?? null;
+            unset($data['group_id'], $data['course_ids']);
+
             if ($request->hasFile('face_image')) {
                 $newImagePath       = $request->file('face_image')->store('students/faces', 'public');
                 $data['face_image'] = $newImagePath;
@@ -125,12 +146,27 @@ class StudentController extends Controller
 
                     return response()->json([
                         'status'  => false,
-                        'message' => 'AI update failed - student not updated',
+                        'message' => 'فشل تحديث الوجه في نظام الذكاء الاصطناعي',
                     ], 500);
                 }
             }
 
+            // تحديث بيانات الطالب
             $student->update($data);
+
+            // لو في تغيير في الكورسات أو الجروب
+            if ($courseIds !== null && $groupId !== null) {
+                // مسح التسجيلات القديمة وإضافة الجديدة
+                $student->courseEnrollments()->delete();
+
+                foreach ($courseIds as $courseId) {
+                    $student->courseEnrollments()->create([
+                        'group_id'    => $groupId,
+                        'course_id'   => $courseId,
+                        'enrolled_at' => now(),
+                    ]);
+                }
+            }
 
             if ($newImagePath && $oldImage && Storage::disk('public')->exists($oldImage)) {
                 Storage::disk('public')->delete($oldImage);
@@ -167,7 +203,7 @@ class StudentController extends Controller
             if (!$deleted) {
                 return response()->json([
                     'status'  => false,
-                    'message' => 'Failed to delete embedding from AI',
+                    'message' => 'فشل حذف الوجه من نظام الذكاء الاصطناعي',
                 ], 500);
             }
 

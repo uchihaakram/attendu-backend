@@ -21,6 +21,8 @@ class AIService
     // ─────────────────────────────
     public function enrollFace(string $filePath, string $studentCode): bool
     {
+        if (!config('services.ai.enabled')) return true; // ← تجاوز للتيست
+
         try {
             $fullPath = storage_path('app/public/' . $filePath);
 
@@ -45,6 +47,8 @@ class AIService
     // ─────────────────────────────
     public function updateFace(string $filePath, string $studentCode): bool
     {
+        if (!config('services.ai.enabled')) return true; // ← تجاوز للتيست
+
         try {
             $fullPath = storage_path('app/public/' . $filePath);
             if (!file_exists($fullPath)) return false;
@@ -65,6 +69,8 @@ class AIService
     // ─────────────────────────────
     public function deleteFace(string $studentCode): bool
     {
+        if (!config('services.ai.enabled')) return true; // ← تجاوز للتيست
+
         try {
             $response = Http::timeout(30)
                 ->withHeaders(['X-API-KEY' => $this->apiKey])
@@ -82,6 +88,8 @@ class AIService
     // ─────────────────────────────
     public function startSession(array $payload): array|bool
     {
+        if (!config('services.ai.enabled')) return true; // ← تجاوز للتيست
+
         try {
             $response = Http::timeout(60)
                 ->withHeaders(['X-API-KEY' => $this->apiKey])

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SessionRequests\StoreSessionRequest;
 use App\Http\Requests\SessionRequests\StartSessionRequest;
 use App\Http\Requests\SessionRequests\UpdateSessionRequest;
 use App\Http\Resources\SessionResource;
@@ -29,6 +30,39 @@ class SessionController extends Controller
     }
 
     // ─────────────────────────────
+    // STORE SESSION
+    // ─────────────────────────────
+    public function store(StoreSessionRequest $request): JsonResponse
+    {
+        $session = DB::transaction(function () use ($request) {
+
+            $session = Session::create([
+                'course_id'    => $request->course_id,
+                'group_id'     => $request->group_id,
+                'session_type' => $request->session_type,
+                'session_date' => $request->session_date,
+                'day'          => $request->day,
+                'start_time'   => $request->start_time,
+                'end_time'     => $request->end_time,
+                'location'     => $request->location,
+                'status'       => 'scheduled',
+            ]);
+
+            $session->instructors()->attach($request->instructor_ids);
+
+            return $session;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إنشاء الجلسة بنجاح',
+            'data'    => new SessionResource(
+                $session->load(['course', 'group', 'instructors'])
+            ),
+        ], 201);
+    }
+
+    // ─────────────────────────────
     // START SESSION → بيبعت للـ AI
     // ─────────────────────────────
     public function startSession(StartSessionRequest $request): JsonResponse
@@ -45,7 +79,6 @@ class SessionController extends Controller
             ], 422);
         }
 
-        // جيب الطلاب من الجروب بتاع السيشن
         $students = $session->group->students->map(fn($student) => [
             'student_code' => $student->student_code,
             'student_name' => $student->first_name . ' ' . $student->last_name,
