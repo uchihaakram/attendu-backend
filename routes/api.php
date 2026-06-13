@@ -30,8 +30,18 @@ Route::middleware(['auth:sanctum', 'json.unicode'])->group(function () {
         Route::delete('/sessions/{id}',   [SessionController::class, 'destroy']);
     });
 });
-Route::middleware(['auth:sanctum', 'role:admin,instructor', 'json.unicode'])->group(function () {
-
-    // Attendance
+// ── AI only (X-API-KEY, بدون Sanctum) ──
+Route::middleware(['json.unicode'])->group(function () {
     Route::post('/attendance/store', [AttendanceController::class, 'storeAttendance']);
+});
+
+// ── Admin + Instructor ──
+Route::middleware(['auth:sanctum', 'role:admin,instructor', 'json.unicode'])->group(function () {
+    Route::get('/attendance/session/{sessionId}', [AttendanceController::class, 'getAttendanceBySession']);
+    Route::get('/attendance/student/{studentId}', [AttendanceController::class, 'getAttendanceByStudent']);
+});
+
+// ── Admin only ──
+Route::middleware(['auth:sanctum', 'role:admin', 'json.unicode'])->group(function () {
+    Route::put('/attendance/{id}', [AttendanceController::class, 'updateAttendance']);
 });
