@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\CreateInstructorRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class UserController extends Controller
 {
@@ -80,4 +81,15 @@ class UserController extends Controller
             'message' => 'Instructor deleted successfully'
         ]);
     }
+    public function getInstructors()
+{
+    $instructors = User::where('role','instructor')
+        ->select('id', 'name', 'email')
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'data'    => $instructors,
+    ]);
+}
 }

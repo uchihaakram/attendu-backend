@@ -25,4 +25,5 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/users/{id}', [UserController::class, 'show']);
 
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::get('/users/instructors',   [UserController::class, 'getInstructors']);
 });

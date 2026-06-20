@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\API\AttendanceController;
+use App\Http\Controllers\API\AttendancePolicyController;
+use App\Http\Controllers\API\CourseController;
+use App\Http\Controllers\API\GroupController;
 use App\Http\Controllers\API\SessionController;
 use App\Http\Controllers\API\StudentController;
 use Illuminate\Http\Request;
@@ -44,4 +47,25 @@ Route::middleware(['auth:sanctum', 'role:admin,instructor', 'json.unicode'])->gr
 // ── Admin only ──
 Route::middleware(['auth:sanctum', 'role:admin', 'json.unicode'])->group(function () {
     Route::put('/attendance/{id}', [AttendanceController::class, 'updateAttendance']);
+});
+Route::middleware(['auth:sanctum', 'role:admin', 'json.unicode'])->group(function () {
+    Route::get('/attendance-policies',      [AttendancePolicyController::class, 'index']);
+    Route::post('/attendance-policies',     [AttendancePolicyController::class, 'store']);
+    Route::get('/attendance-policies/{id}', [AttendancePolicyController::class, 'show']);
+    Route::put('/attendance-policies/{id}', [AttendancePolicyController::class, 'update']);
+    Route::delete('/attendance-policies/{id}', [AttendancePolicyController::class, 'destroy']);
+});
+Route::middleware(['auth:sanctum', 'role:admin', 'json.unicode'])->group(function () {
+    Route::get('/courses',          [CourseController::class, 'index']);
+    Route::post('/courses',         [CourseController::class, 'store']);
+    Route::get('/courses/{id}',     [CourseController::class, 'show']);
+    Route::put('/courses/{id}',     [CourseController::class, 'update']);
+    Route::delete('/courses/{id}',  [CourseController::class, 'destroy']);
+});
+Route::middleware(['auth:sanctum', 'role:admin', 'json.unicode'])->group(function () {
+    Route::get('/groups',          [GroupController::class, 'index']);
+    Route::post('/groups',         [GroupController::class, 'store']);
+    Route::get('/groups/{id}',     [GroupController::class, 'show']);
+    Route::put('/groups/{id}',     [GroupController::class, 'update']);
+    Route::delete('/groups/{id}',  [GroupController::class, 'destroy']);
 });
