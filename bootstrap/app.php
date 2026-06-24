@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckAiApiKey;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\JsonUnicodeResponse;
 use Illuminate\Foundation\Application;
@@ -17,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => CheckRole::class,
             'json.unicode' => JsonUnicodeResponse::class,
+            'ai.key'       => CheckAiApiKey::class, // ← أضف السطر ده
+
         ]);
     })
 

@@ -92,12 +92,12 @@ class SessionController extends Controller
         }
 
         $payload = [
-            'session_schedule_id' => $session->id,
+            'session_schedule_id' => (string) $session->id,  // ← string مش integer
             'students'            => $students,
             'min_attend'          => $policy->min_attend,
             'max_attend'          => $policy->max_attend,
-            'start_time'          => $request->start_time,
-            'end_time'            => $request->end_time,
+            'start_time' => \Carbon\Carbon::parse($request->start_time)->format('Y-m-d\TH:i:s'),
+            'end_time'   => \Carbon\Carbon::parse($request->end_time)->format('Y-m-d\TH:i:s'),   // ← ISO 8601
         ];
 
         $aiResponse = $this->aiService->startSession($payload);

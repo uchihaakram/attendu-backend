@@ -34,7 +34,7 @@ Route::middleware(['auth:sanctum', 'json.unicode'])->group(function () {
     });
 });
 // ── AI only (X-API-KEY, بدون Sanctum) ──
-Route::middleware(['json.unicode'])->group(function () {
+Route::middleware(['ai.key','json.unicode'])->group(function () {
     Route::post('/attendance/store', [AttendanceController::class, 'storeAttendance']);
 });
 

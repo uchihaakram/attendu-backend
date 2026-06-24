@@ -81,15 +81,5 @@ class UserController extends Controller
             'message' => 'Instructor deleted successfully'
         ]);
     }
-    public function getInstructors()
-{
-    $instructors = User::where('role','instructor')
-        ->select('id', 'name', 'email')
-        ->get();
 
-    return response()->json([
-        'success' => true,
-        'data'    => $instructors,
-    ]);
-}
 }

@@ -21,30 +21,33 @@ class AttendanceController extends Controller
     {
         $validated = $request->validated();
         $data      = $validated['attendance_data'];
-        $sessionId = $validated['session_schedule_id'];
+        $sessionId = (int) $validated['session_schedule_id']; // ← cast لـ integer لو جه string من الـ AI
 
-        // تتبع الطلاب اللي student_code بتاعهم مش موجود في DB
         $notFound = [];
 
-        DB::transaction(function () use ($data, $sessionId, &$notFound) {
+        try {
+            DB::transaction(function () use ($data, $sessionId, &$notFound) {
+                foreach ($data['present_students'] as $record) {
+                    if (!$this->createAttendance($record, $sessionId, 'present'))
+                        $notFound[] = $record['student_code'];
+                }
+                foreach ($data['late_students'] as $record) {
+                    if (!$this->createAttendance($record, $sessionId, 'late'))
+                        $notFound[] = $record['student_code'];
+                }
+                foreach ($data['absent_students'] as $record) {
+                    if (!$this->createAttendance($record, $sessionId, 'absent'))
+                        $notFound[] = $record['student_code'];
+                }
+            });
+        } catch (\Exception $e) {
+            Log::error('storeAttendance transaction failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل تسجيل الحضور',
+            ], 500);
+        }
 
-            foreach ($data['present_students'] as $record) {
-                $found = $this->createAttendance($record, $sessionId, 'present');
-                if (!$found) $notFound[] = $record['student_code'];
-            }
-
-            foreach ($data['late_students'] as $record) {
-                $found = $this->createAttendance($record, $sessionId, 'late');
-                if (!$found) $notFound[] = $record['student_code'];
-            }
-
-            foreach ($data['absent_students'] as $record) {
-                $found = $this->createAttendance($record, $sessionId, 'absent');
-                if (!$found) $notFound[] = $record['student_code'];
-            }
-        });
-
-        // لو في طلاب مش موجودين نسجلهم في الـ log
         if (!empty($notFound)) {
             Log::warning('storeAttendance: student_codes not found in DB', [
                 'session_schedule_id' => $sessionId,
@@ -53,12 +56,12 @@ class AttendanceController extends Controller
         }
 
         return response()->json([
-            'success' => true,
-            'message' => 'تم تسجيل الحضور بنجاح',
-            'data'    => [
+            'success'          => true,
+            'message'          => 'تم تسجيل الحضور بنجاح',
+            'data'             => [
                 'session_schedule_id' => $sessionId,
                 'summary'             => $data['summary'],
-                'not_found_codes'     => $notFound, // بيخلي الـ AI يعرف مين مش موجود
+                'not_found_codes'     => $notFound,
             ],
         ]);
     }

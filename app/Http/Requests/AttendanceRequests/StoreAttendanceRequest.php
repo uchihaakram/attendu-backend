@@ -19,8 +19,8 @@ class StoreAttendanceRequest extends FormRequest
             'attendance_data'                => ['required', 'array'],
             'attendance_data.summary'        => ['required', 'array'],
             'attendance_data.present_students' => ['required', 'array'],
-            'attendance_data.late_students'    => ['required', 'array'],
-            'attendance_data.absent_students'  => ['required', 'array'],
+            'attendance_data.late_students'   => ['present', 'array'],
+            'attendance_data.absent_students' => ['present', 'array'],
 
             // present
             'attendance_data.present_students.*.student_code'     => ['required', 'string'],
