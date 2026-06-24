@@ -17,8 +17,8 @@ class UpdateSessionRequest extends FormRequest
             'course_id'      => ['sometimes', 'exists:courses,id'],
             'session_type'   => ['sometimes', 'string'],
             'day'            => ['sometimes', 'string'],
-            'start_time'     => ['sometimes', 'date_format:H:i'],
-            'end_time'       => ['sometimes', 'date_format:H:i', 'after:start_time'],
+            'start_time' => ['required', 'date'],
+            'end_time'   => ['required', 'date', 'after:start_time'],
             'location'       => ['sometimes', 'string'],
             'group_id'       => ['sometimes', 'exists:groups,id'],
             'instructor_ids' => ['sometimes', 'array'],
@@ -31,7 +31,12 @@ class UpdateSessionRequest extends FormRequest
         return [
             'course_id.exists'        => 'المقرر غير موجود.',
             'group_id.exists'         => 'الفرقة غير موجودة.',
-            'end_time.after'          => 'وقت النهاية يجب أن يكون بعد البداية.',
+            'start_time.required'    => 'وقت البداية مطلوب.',
+            'start_time.date_format' => 'وقت البداية يجب أن يكون بصيغة YYYY-MM-DDTHH:MM:SS.',
+
+            'end_time.required'    => 'وقت النهاية مطلوب.',
+            'end_time.date_format' => 'وقت النهاية يجب أن يكون بصيغة YYYY-MM-DDTHH:MM:SS.',
+            'end_time.after'       => 'وقت النهاية يجب أن يكون بعد البداية.',
             'instructor_ids.*.exists' => 'أحد المحاضرين غير موجود.',
         ];
     }

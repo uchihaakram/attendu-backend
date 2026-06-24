@@ -11,6 +11,7 @@ use App\Http\Requests\AttendanceRequests\UpdateAttendanceRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\WarningService;
 
 class AttendanceController extends Controller
 {
@@ -21,7 +22,7 @@ class AttendanceController extends Controller
     {
         $validated = $request->validated();
         $data      = $validated['attendance_data'];
-        $sessionId = (int) $validated['session_schedule_id']; // ← cast لـ integer لو جه string من الـ AI
+        $sessionId = (int) $validated['session_schedule_id'];
 
         $notFound = [];
 
@@ -56,9 +57,9 @@ class AttendanceController extends Controller
         }
 
         return response()->json([
-            'success'          => true,
-            'message'          => 'تم تسجيل الحضور بنجاح',
-            'data'             => [
+            'success' => true,
+            'message' => 'تم تسجيل الحضور بنجاح',
+            'data'    => [
                 'session_schedule_id' => $sessionId,
                 'summary'             => $data['summary'],
                 'not_found_codes'     => $notFound,
@@ -109,7 +110,6 @@ class AttendanceController extends Controller
     {
         $student = Student::findOrFail($studentId);
 
-        // الترتيب على session_date مش check_in_time عشان الغائبين check_in_time = null
         $attendances = Attendance::with('session.course')
             ->where('student_id', $studentId)
             ->join('sessionschedules', 'attendances.session_schedule_id', '=', 'sessionschedules.id')
@@ -117,13 +117,13 @@ class AttendanceController extends Controller
             ->select('attendances.*')
             ->get()
             ->map(fn($att) => [
-                'attendance_id' => $att->id,
-                'session_id'    => $att->session_schedule_id,
-                'course_name'   => $att->session?->course?->course_name,
-                'session_type'  => $att->session?->session_type,
-                'session_date'  => $att->session?->session_date?->format('Y-m-d'),
-                'status'        => $att->status,
-                'check_in_time' => $att->check_in_time,
+                'attendance_id'    => $att->id,
+                'session_id'       => $att->session_schedule_id,
+                'course_name'      => $att->session?->course?->course_name,
+                'session_type'     => $att->session?->session_type,
+                'session_date'     => $att->session?->session_date?->format('Y-m-d'),
+                'status'           => $att->status,
+                'check_in_time'    => $att->check_in_time,
                 'confidence_score' => $att->confidence_score,
             ]);
 
@@ -151,17 +151,16 @@ class AttendanceController extends Controller
         $attendance = Attendance::findOrFail($id);
 
         $attendance->update([
-            'status' => $request->status,
-
-            // لو الـ request فيه check_in_time صريح → استخدمه
-            // لو status = absent → null
-            // لو status = present/late ومفيش check_in_time في الـ request → خلي القيمة الموجودة زي ما هي
-            'check_in_time' => $request->status === 'absent'
+            'status'           => $request->status,
+            'check_in_time'    => $request->status === 'absent'
                 ? null
                 : ($request->check_in_time ?? $attendance->check_in_time),
-
             'detection_method' => 'manual',
         ]);
+
+        // فحص التحذيرات بعد التعديل اليدوي كمان
+        $warningService = new WarningService();
+        $warningService->checkAndWarn($attendance->student_id, $attendance->session_schedule_id);
 
         return response()->json([
             'success' => true,
@@ -173,12 +172,6 @@ class AttendanceController extends Controller
     // ─────────────────────────────
     // HELPER
     // ─────────────────────────────
-
-    /**
-     * يعمل attendance record للطالب في السيشن.
-     * لو السجل موجود من قبل يعمل update (منع الـ duplicate).
-     * بيرجع true لو الطالب اتلقى، false لو مش موجود في DB.
-     */
     private function createAttendance(array $record, int $sessionId, string $status): bool
     {
         $student = Student::where('student_code', $record['student_code'])->first();
@@ -186,12 +179,10 @@ class AttendanceController extends Controller
         if (!$student) return false;
 
         Attendance::updateOrCreate(
-            // شرط التطابق: نفس الطالب + نفس السيشن
             [
                 'student_id'          => $student->id,
                 'session_schedule_id' => $sessionId,
             ],
-            // القيم اللي بنحدثها أو بنكتبها
             [
                 'status'           => $status,
                 'check_in_time'    => $status !== 'absent'
@@ -201,6 +192,10 @@ class AttendanceController extends Controller
                 'confidence_score' => $record['confidence_score'] ?? null,
             ]
         );
+
+        // فحص التحذيرات تلقائياً بعد كل حضور
+        $warningService = new WarningService();
+        $warningService->checkAndWarn($student->id, $sessionId);
 
         return true;
     }

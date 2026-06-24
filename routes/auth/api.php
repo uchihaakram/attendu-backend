@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\ReportController;
 use App\Http\Controllers\API\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -22,8 +23,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
     Route::post('/users/instructor', [UserController::class, 'createInstructor']);
 
+    Route::get('/users/instructors',   [UserController::class, 'getInstructors']);
     Route::get('/users/{id}', [UserController::class, 'show']);
 
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
-    Route::get('/users/instructors',   [UserController::class, 'getInstructors']);
+});
+// Reports
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+Route::get('/reports/students',      [ReportController::class, 'index']);
+Route::get('/reports/students/{id}', [ReportController::class, 'show']);
 });

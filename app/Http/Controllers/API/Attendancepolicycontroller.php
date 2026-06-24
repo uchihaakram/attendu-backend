@@ -15,17 +15,24 @@ class AttendancePolicyController extends Controller
     // ─────────────────────────────
     // GET ALL
     // ─────────────────────────────
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $policies = AttendancePolicy::with('course')->get()
-            ->map(fn($policy) => [
-                'id'                   => $policy->id,
-                'course_id'            => $policy->course_id,
-                'course_name'          => $policy->course?->course_name,
-                'max_absences_allowed' => $policy->max_absences_allowed,
-                'min_attend'           => $policy->min_attend,
-                'max_attend'           => $policy->max_attend,
-            ]);
+        $query = AttendancePolicy::with('course');
+
+        if ($request->filled('search')) {
+            $query->whereHas('course', function ($q) use ($request) {
+                $q->where('course_name', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $policies = $query->get()->map(fn($policy) => [
+            'id'                   => $policy->id,
+            'course_id'            => $policy->course_id,
+            'course_name'          => $policy->course?->course_name,
+            'max_absences_allowed' => $policy->max_absences_allowed,
+            'min_attend'           => $policy->min_attend,
+            'max_attend'           => $policy->max_attend,
+        ]);
 
         return response()->json([
             'success' => true,

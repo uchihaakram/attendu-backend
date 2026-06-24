@@ -3,9 +3,12 @@
 use App\Http\Controllers\API\AttendanceController;
 use App\Http\Controllers\API\AttendancePolicyController;
 use App\Http\Controllers\API\CourseController;
+use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\GroupController;
 use App\Http\Controllers\API\SessionController;
 use App\Http\Controllers\API\StudentController;
+use App\Http\Controllers\API\WarningController;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,7 +37,7 @@ Route::middleware(['auth:sanctum', 'json.unicode'])->group(function () {
     });
 });
 // ── AI only (X-API-KEY, بدون Sanctum) ──
-Route::middleware(['ai.key','json.unicode'])->group(function () {
+Route::middleware(['ai.key', 'json.unicode'])->group(function () {
     Route::post('/attendance/store', [AttendanceController::class, 'storeAttendance']);
 });
 
@@ -68,4 +71,16 @@ Route::middleware(['auth:sanctum', 'role:admin', 'json.unicode'])->group(functio
     Route::get('/groups/{id}',     [GroupController::class, 'show']);
     Route::put('/groups/{id}',     [GroupController::class, 'update']);
     Route::delete('/groups/{id}',  [GroupController::class, 'destroy']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin', 'json.unicode'])->group(function () {
+    Route::get('/warnings',              [WarningController::class, 'index']);
+    Route::post('/warnings/{studentId}', [WarningController::class, 'store']);
+    Route::delete('/warnings/{id}',      [WarningController::class, 'destroy']);
+});
+Route::middleware(['auth:sanctum', 'role:admin,instructor', 'json.unicode'])->group(function () {
+    Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+});
+Route::middleware(['auth:sanctum', 'role:admin,instructor', 'json.unicode'])->group(function () {
+Route::get('/sessions/{id}/live', [SessionController::class, 'liveSession']);
 });

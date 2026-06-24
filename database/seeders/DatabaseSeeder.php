@@ -11,6 +11,8 @@ use App\Models\AttendancePolicy;
 use App\Models\Session;
 use App\Models\Student;
 use App\Models\CourseEnrollment;
+use App\Models\Attendance;
+
 
 class DatabaseSeeder extends Seeder
 {
@@ -219,5 +221,26 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->command->info('✅ تم إضافة البيانات التجريبية بنجاح!');
+        // ─────────────────────────────
+        // 9. ATTENDANCES
+        // ─────────────────────────────
+
+        // محمد علي - حاضر
+        Attendance::updateOrCreate(
+            ['student_id' => $student1->id, 'session_schedule_id' => $session1->id],
+            ['status' => 'present', 'confidence_score' => 95.5, 'check_in_time' => '08:05:00', 'detection_method' => 'face_recognition']
+        );
+
+        // سارة أحمد - متأخرة
+        Attendance::updateOrCreate(
+            ['student_id' => $student2->id, 'session_schedule_id' => $session1->id],
+            ['status' => 'late', 'confidence_score' => 88.0, 'check_in_time' => '08:45:00', 'detection_method' => 'face_recognition']
+        );
+
+        // عمر حسن - غايب
+        Attendance::updateOrCreate(
+            ['student_id' => $student3->id, 'session_schedule_id' => $session2->id],
+            ['status' => 'absent', 'confidence_score' => 0, 'check_in_time' => null, 'detection_method' => null]
+        );
     }
 }

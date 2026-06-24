@@ -10,6 +10,7 @@ use App\Http\Resources\SessionResource;
 use App\Models\Session;
 use App\Services\AIService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class SessionController extends Controller
@@ -19,13 +20,32 @@ class SessionController extends Controller
     // ─────────────────────────────
     // GET ALL SESSIONS
     // ─────────────────────────────
-    public function getSessions(): JsonResponse
+    public function getSessions(Request $request): JsonResponse
     {
-        $sessions = Session::with(['course', 'group', 'instructors'])->get();
+        $query = Session::with(['course', 'group', 'instructors']);
+
+        // فلتر باسم المحاضر/المعيد
+        if ($request->filled('search')) {
+            $query->whereHas('instructors', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        // فلتر بنوع الجلسة
+        if ($request->filled('session_type')) {
+            $query->where('session_type', $request->session_type);
+        }
+
+        // فلتر باليوم
+        if ($request->filled('day')) {
+            $query->where('day', $request->day);
+        }
+
+        $sessions = $query->get();
 
         return response()->json([
             'success' => true,
-            'data'    => SessionResource::collection($sessions),
+            'data'    => $sessions,
         ]);
     }
 
@@ -163,6 +183,65 @@ class SessionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'تم حذف الجلسة بنجاح',
+        ]);
+    }
+
+    // ─────────────────────────────
+    // LIVE SESSION
+    // ─────────────────────────────
+    public function liveSession(int $id): JsonResponse
+    {
+        $session = Session::with(['course', 'group', 'instructors'])
+            ->findOrFail($id);
+
+        // جيب كل الطلاب المسجلين في الجروب
+        $students = $session->group->students()->get();
+
+        // جيب الحضور المسجل لهذه السيشن
+        $attendances = \App\Models\Attendance::where('session_schedule_id', $id)
+            ->get()
+            ->keyBy('student_id');
+
+        $studentsList = $students->map(function ($student) use ($attendances) {
+            $attendance = $attendances->get($student->id);
+
+            return [
+                'student_id'        => $student->id,
+                'student_name'      => $student->first_name . ' ' . $student->last_name,
+                'student_code'      => $student->student_code,
+                'enrollment_status' => 'مسجل',
+                'attendance_status' => $attendance?->status ?? 'لم يسجل بعد',
+                'confidence_score'  => $attendance?->confidence_score
+                    ? $attendance->confidence_score . '%'
+                    : null,
+                'check_in_time'     => $attendance?->check_in_time,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'session_id'   => $session->id,
+                'course_name'  => $session->course?->course_name,
+                'session_type' => $session->session_type,
+                'group_name'   => $session->group?->group_name,
+                'start_time' => $session->start_time
+                    ? \Carbon\Carbon::parse($session->start_time)->format('H:i')
+                    : null,
+                'end_time'   => $session->end_time
+                    ? \Carbon\Carbon::parse($session->end_time)->format('H:i')
+                    : null,
+                'status'       => $session->status,
+                'instructors'  => $session->instructors->pluck('name'),
+                'students'     => $studentsList,
+                'summary'      => [
+                    'total'        => $studentsList->count(),
+                    'present'      => $studentsList->where('attendance_status', 'present')->count(),
+                    'late'         => $studentsList->where('attendance_status', 'late')->count(),
+                    'absent'       => $studentsList->where('attendance_status', 'absent')->count(),
+                    'not_recorded' => $studentsList->where('attendance_status', 'لم يسجل بعد')->count(),
+                ],
+            ],
         ]);
     }
 }

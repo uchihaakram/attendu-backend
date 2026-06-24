@@ -9,6 +9,7 @@ use App\Http\Resources\StudentResource;
 use App\Models\Student;
 use App\Models\Group;
 use App\Services\AIService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -19,17 +20,28 @@ class StudentController extends Controller
     // ─────────────────────────────
     // INDEX
     // ─────────────────────────────
-    public function index()
-    {
-        $students = Student::with('groups.course')->paginate(10);
+  public function index(Request $request)
+{
+    $query = Student::with('groups.course');
 
-        return response()->json([
-            'status'  => true,
-            'message' => $students->isEmpty() ? 'عفوا لا يوجد بيانات للعرض' : null,
-            'data'    => StudentResource::collection($students),
-        ]);
+    if ($request->filled('search')) {
+        $query->where('student_code', 'like', '%' . $request->search . '%');
     }
 
+    if ($request->filled('group_id')) {
+        $query->whereHas('groups', function ($q) use ($request) {
+            $q->where('groups.id', $request->group_id);
+        });
+    }
+
+    $students = $query->paginate(10);
+
+    return response()->json([
+        'status'  => true,
+        'message' => $students->isEmpty() ? 'عفوا لا يوجد بيانات للعرض' : null,
+        'data'    => StudentResource::collection($students),
+    ]);
+}
     // ─────────────────────────────
     // STORE
     // ─────────────────────────────
