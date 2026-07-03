@@ -15,10 +15,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::where('role', 'instructor')
-            ->latest()
-            ->paginate(10);
-
+        $users = User::where('role', 'instructor')->get();
         return response()->json([
             'status' => true,
             'data' => $users

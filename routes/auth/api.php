@@ -19,11 +19,10 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
     // instructors management
-    Route::get('/users', [UserController::class, 'index']);
 
     Route::post('/users/instructor', [UserController::class, 'createInstructor']);
 
-    Route::get('/users/instructors',   [UserController::class, 'getInstructors']);
+    Route::get('/users/instructors',   [UserController::class, 'index']);
     Route::get('/users/{id}', [UserController::class, 'show']);
 
     Route::delete('/users/{id}', [UserController::class, 'destroy']);

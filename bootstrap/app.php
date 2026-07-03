@@ -19,7 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => CheckRole::class,
             'json.unicode' => JsonUnicodeResponse::class,
             'ai.key'       => CheckAiApiKey::class, // ← أضف السطر ده
-
         ]);
     })
 
