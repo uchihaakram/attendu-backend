@@ -9,6 +9,7 @@ use App\Http\Requests\SessionRequests\UpdateSessionRequest;
 use App\Http\Resources\SessionResource;
 use App\Models\Session;
 use App\Services\AIService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,19 +25,16 @@ class SessionController extends Controller
     {
         $query = Session::with(['course', 'group', 'instructors']);
 
-        // فلتر باسم المحاضر/المعيد
         if ($request->filled('search')) {
             $query->whereHas('instructors', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%');
             });
         }
 
-        // فلتر بنوع الجلسة
         if ($request->filled('session_type')) {
             $query->where('session_type', $request->session_type);
         }
 
-        // فلتر باليوم
         if ($request->filled('day')) {
             $query->where('day', $request->day);
         }
@@ -51,6 +49,7 @@ class SessionController extends Controller
 
     // ─────────────────────────────
     // STORE SESSION
+    // بيستقبل UTC من الفرونت ويخزن UTC في الداتابيز
     // ─────────────────────────────
     public function store(StoreSessionRequest $request): JsonResponse
     {
@@ -62,8 +61,8 @@ class SessionController extends Controller
                 'session_type' => $request->session_type,
                 'session_date' => $request->session_date,
                 'day'          => $request->day,
-                'start_time'   => $request->start_time,
-                'end_time'     => $request->end_time,
+                'start_time'   => $request->start_time,  // UTC كما هو
+                'end_time'     => $request->end_time,     // UTC كما هو
                 'location'     => $request->location,
                 'status'       => 'scheduled',
             ]);
@@ -84,6 +83,7 @@ class SessionController extends Controller
 
     // ─────────────────────────────
     // START SESSION → بيبعت للـ AI
+    // بيستقبل UTC من الفرونت ويبعت UTC للموديل
     // ─────────────────────────────
     public function startSession(StartSessionRequest $request): JsonResponse
     {
@@ -112,12 +112,12 @@ class SessionController extends Controller
         }
 
         $payload = [
-            'session_schedule_id' => (string) $session->id,  // ← string مش integer
+            'session_schedule_id' => (string) $session->id,
             'students'            => $students,
             'min_attend'          => $policy->min_attend,
             'max_attend'          => $policy->max_attend,
-            'start_time' => \Carbon\Carbon::parse($request->start_time)->format('Y-m-d\TH:i:s'),
-            'end_time'   => \Carbon\Carbon::parse($request->end_time)->format('Y-m-d\TH:i:s'),   // ← ISO 8601
+            'start_time'          => Carbon::parse($request->start_time)->utc()->format('Y-m-d\TH:i:s'),
+            'end_time'            => Carbon::parse($request->end_time)->utc()->format('Y-m-d\TH:i:s'),
         ];
 
         $aiResponse = $this->aiService->startSession($payload);
@@ -188,16 +188,15 @@ class SessionController extends Controller
 
     // ─────────────────────────────
     // LIVE SESSION
+    // بيرجع الوقت بتوقيت Cairo للفرونت
     // ─────────────────────────────
     public function liveSession(int $id): JsonResponse
     {
         $session = Session::with(['course', 'group', 'instructors'])
             ->findOrFail($id);
 
-        // جيب كل الطلاب المسجلين في الجروب
         $students = $session->group->students()->get();
 
-        // جيب الحضور المسجل لهذه السيشن
         $attendances = \App\Models\Attendance::where('session_schedule_id', $id)
             ->get()
             ->keyBy('student_id');
@@ -214,7 +213,9 @@ class SessionController extends Controller
                 'confidence_score'  => $attendance?->confidence_score
                     ? $attendance->confidence_score . '%'
                     : null,
-                'check_in_time'     => $attendance?->check_in_time,
+                'check_in_time'     => $attendance?->check_in_time
+                    ? Carbon::parse($attendance->check_in_time)->timezone('Africa/Cairo')->format('H:i:s')
+                    : null,
             ];
         });
 
@@ -225,11 +226,11 @@ class SessionController extends Controller
                 'course_name'  => $session->course?->course_name,
                 'session_type' => $session->session_type,
                 'group_name'   => $session->group?->group_name,
-                'start_time' => $session->start_time
-                    ? \Carbon\Carbon::parse($session->start_time)->format('H:i')
+                'start_time'   => $session->start_time
+                    ? Carbon::parse($session->start_time)->timezone('Africa/Cairo')->format('H:i')
                     : null,
-                'end_time'   => $session->end_time
-                    ? \Carbon\Carbon::parse($session->end_time)->format('H:i')
+                'end_time'     => $session->end_time
+                    ? Carbon::parse($session->end_time)->timezone('Africa/Cairo')->format('H:i')
                     : null,
                 'status'       => $session->status,
                 'instructors'  => $session->instructors->pluck('name'),
