@@ -15,7 +15,8 @@ class GroupController extends Controller
     // ─────────────────────────────
     public function index(): JsonResponse
     {
-        $groups = Group::with('course')->get()
+        $groups = Group::with('courses')
+            ->get()
             ->map(fn($group) => $this->formatGroup($group));
 
         return response()->json([
@@ -29,12 +30,19 @@ class GroupController extends Controller
     // ─────────────────────────────
     public function store(StoreGroupRequest $request): JsonResponse
     {
-        $group = Group::create($request->validated());
+        $data = $request->validated();
+
+        $group = Group::create($data);
+
+        // ربط الكورسات (many-to-many)
+        if (isset($data['course_ids'])) {
+            $group->courses()->sync($data['course_ids']);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'تم إنشاء الفرقة بنجاح',
-            'data'    => $this->formatGroup($group->load('course')),
+            'data'    => $this->formatGroup($group->load('courses')),
         ], 201);
     }
 
@@ -43,7 +51,7 @@ class GroupController extends Controller
     // ─────────────────────────────
     public function show(int $id): JsonResponse
     {
-        $group = Group::with('course')->findOrFail($id);
+        $group = Group::with('courses')->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -57,12 +65,20 @@ class GroupController extends Controller
     public function update(UpdateGroupRequest $request, int $id): JsonResponse
     {
         $group = Group::findOrFail($id);
-        $group->update($request->validated());
+
+        $data = $request->validated();
+
+        $group->update($data);
+
+        // تحديث العلاقات فقط لو موجودة
+        if (isset($data['course_ids'])) {
+            $group->courses()->sync($data['course_ids']);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'تم تعديل الفرقة بنجاح',
-            'data'    => $this->formatGroup($group->fresh('course')),
+            'data'    => $this->formatGroup($group->fresh('courses')),
         ]);
     }
 
@@ -81,7 +97,7 @@ class GroupController extends Controller
     }
 
     // ─────────────────────────────
-    // HELPER
+    // FORMAT RESPONSE
     // ─────────────────────────────
     private function formatGroup(Group $group): array
     {
@@ -90,8 +106,13 @@ class GroupController extends Controller
             'group_name'    => $group->group_name,
             'group_code'    => $group->group_code,
             'academic_year' => $group->academic_year,
-            'course_id'     => $group->course_id,
-            'course_name'   => $group->course?->course_name,
+
+            // Many-to-Many courses
+            'courses' => $group->courses->map(fn($course) => [
+                'id'          => $course->id,
+                'course_name' => $course->course_name,
+                'course_code' => $course->course_code,
+            ]),
         ];
     }
 }

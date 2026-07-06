@@ -14,18 +14,21 @@ class StoreGroupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_id'     => ['required', 'exists:courses,id'],
-            'group_name'    => ['required', 'string', 'max:255'],
-            'group_code'    => ['required', 'string', 'max:50', 'unique:groups,group_code'],
-            'academic_year' => ['required', 'in:first,second,third,fourth'],
-        ];
+        'course_ids'   => ['required', 'array'],
+        'course_ids.*' => ['exists:courses,id'],
+
+        'group_name'    => ['required', 'string', 'max:255'],
+        'group_code'    => ['required', 'string', 'max:50', 'unique:groups,group_code'],
+        'academic_year' => ['required', 'in:first,second,third,fourth'],
+    ];
     }
 
     public function messages(): array
     {
         return [
-            'course_id.required'     => 'المقرر مطلوب.',
-            'course_id.exists'       => 'المقرر غير موجود.',
+            'course_ids.required'     => 'المقررات مطلوبة.',
+            'course_ids.array'        => 'المقررات يجب أن تكون مصفوفة.',
+            'course_ids.*.exists'     => 'بعض المقررات غير موجودة.',
             'group_name.required'    => 'اسم الفرقة مطلوب.',
             'group_code.required'    => 'كود الفرقة مطلوب.',
             'group_code.unique'      => 'كود الفرقة مستخدم بالفعل.',

@@ -6,38 +6,34 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Group;
-use App\Models\Attendance;
-use App\Models\Warning;
-use App\Models\CourseEnrollment;
 
 class Student extends Model
 {
     use HasFactory;
+
     protected $table = 'students';
+
     protected $guarded = [];
-    // protected $fillable = [
-    //     'first_name',
-    //     'last_name',
-    //     'student_code',
-    //     'email',
-    //     'phone_number',
-    //     'gender',
-    //     'national_id',
-    //     'image',
-    //     'face_profile_id',
-    //     'registered_at',
-    // ];
 
     protected $casts = [
         'registered_at' => 'datetime',
     ];
 
+    // Groups (pivot student_group)
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(Group::class, 'course_enrollments')
-            ->withTimestamps()
-            ->withPivot(['course_id', 'enrolled_at']);
+        return $this->belongsToMany(
+            Group::class,
+            'group_student',
+            'student_id',
+            'group_id'
+        )->withTimestamps();
+    }
+
+    // Course Enrollments (IMPORTANT FIX)
+    public function courseEnrollments(): HasMany
+    {
+        return $this->hasMany(CourseEnrollment::class);
     }
 
     public function attendances(): HasMany
@@ -50,11 +46,7 @@ class Student extends Model
         return $this->hasMany(Warning::class);
     }
 
-    public function courseEnrollments(): HasMany
-    {
-        return $this->hasMany(CourseEnrollment::class);
-    }
-    public function faceEmbeddings()
+    public function faceEmbeddings(): HasMany
     {
         return $this->hasMany(FaceEmbedding::class);
     }

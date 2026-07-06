@@ -39,17 +39,14 @@ class SessionController extends Controller
             $query->where('day', $request->day);
         }
 
-        $sessions = $query->get();
-
         return response()->json([
             'success' => true,
-            'data'    => $sessions,
+            'data'    => $query->get(),
         ]);
     }
 
     // ─────────────────────────────
     // STORE SESSION
-    // بيستقبل UTC من الفرونت ويخزن UTC في الداتابيز
     // ─────────────────────────────
     public function store(StoreSessionRequest $request): JsonResponse
     {
@@ -59,10 +56,10 @@ class SessionController extends Controller
                 'course_id'    => $request->course_id,
                 'group_id'     => $request->group_id,
                 'session_type' => $request->session_type,
-                'session_date' => $request->session_date,
+                'session_date' => Carbon::parse($request->session_date)->utc()->toDateString(),
                 'day'          => $request->day,
-                'start_time'   => $request->start_time,  // UTC كما هو
-                'end_time'     => $request->end_time,     // UTC كما هو
+                'start_time'   => Carbon::parse($request->start_time)->utc(),
+                'end_time'     => Carbon::parse($request->end_time)->utc(),
                 'location'     => $request->location,
                 'status'       => 'scheduled',
             ]);
@@ -82,8 +79,7 @@ class SessionController extends Controller
     }
 
     // ─────────────────────────────
-    // START SESSION → بيبعت للـ AI
-    // بيستقبل UTC من الفرونت ويبعت UTC للموديل
+    // START SESSION
     // ─────────────────────────────
     public function startSession(StartSessionRequest $request): JsonResponse
     {
@@ -116,8 +112,12 @@ class SessionController extends Controller
             'students'            => $students,
             'min_attend'          => $policy->min_attend,
             'max_attend'          => $policy->max_attend,
-            'start_time'          => Carbon::parse($request->start_time)->utc()->format('Y-m-d\TH:i:s'),
-            'end_time'            => Carbon::parse($request->end_time)->utc()->format('Y-m-d\TH:i:s'),
+            'start_time'          => Carbon::parse($request->start_time)
+                ->utc()
+                ->format('Y-m-d\TH:i:sP'),
+            'end_time'            => Carbon::parse($request->end_time)
+                ->utc()
+                ->format('Y-m-d\TH:i:sP'),
         ];
 
         $aiResponse = $this->aiService->startSession($payload);
@@ -150,12 +150,12 @@ class SessionController extends Controller
 
             $session->update($request->only([
                 'course_id',
+                'group_id',
                 'session_type',
                 'day',
                 'start_time',
                 'end_time',
                 'location',
-                'group_id',
             ]));
 
             if ($request->has('instructor_ids')) {
@@ -188,7 +188,6 @@ class SessionController extends Controller
 
     // ─────────────────────────────
     // LIVE SESSION
-    // بيرجع الوقت بتوقيت Cairo للفرونت
     // ─────────────────────────────
     public function liveSession(int $id): JsonResponse
     {
@@ -202,6 +201,7 @@ class SessionController extends Controller
             ->keyBy('student_id');
 
         $studentsList = $students->map(function ($student) use ($attendances) {
+
             $attendance = $attendances->get($student->id);
 
             return [

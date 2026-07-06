@@ -30,7 +30,9 @@ class StoreStudentRequest extends FormRequest
                 'dimensions:min_width=500,min_height=650',
             ],
             'group_id'     => ['required', 'exists:groups,id'],
-            'course_ids'   => ['required', 'array', 'min:1'],
+
+            // ⚠️ هنسيبه زي ما هو عشان frontend ما يتكسرش
+            'course_ids'   => ['sometimes', 'array'],
             'course_ids.*' => ['exists:courses,id'],
         ];
     }

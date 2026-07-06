@@ -9,6 +9,7 @@ use App\Http\Resources\StudentResource;
 use App\Models\Student;
 use App\Models\Group;
 use App\Services\AIService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -20,61 +21,68 @@ class StudentController extends Controller
     // ─────────────────────────────
     // INDEX
     // ─────────────────────────────
-  public function index(Request $request)
-{
-    $query = Student::with('groups.course');
+    public function index(Request $request): JsonResponse
+    {
+        $query = Student::with('groups.courses');
 
-    if ($request->filled('search')) {
-        $query->where('student_code', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $query->where('student_code', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('group_id')) {
+            $query->whereHas('groups', function ($q) use ($request) {
+                $q->where('groups.id', $request->group_id);
+            });
+        }
+
+        $students = $query->paginate(10);
+
+        return response()->json([
+            'status'  => true,
+            'message' => $students->isEmpty() ? 'عفوا لا يوجد بيانات للعرض' : null,
+            'data'    => StudentResource::collection($students),
+        ]);
     }
 
-    if ($request->filled('group_id')) {
-        $query->whereHas('groups', function ($q) use ($request) {
-            $q->where('groups.id', $request->group_id);
-        });
-    }
-
-    $students = $query->paginate(10);
-
-    return response()->json([
-        'status'  => true,
-        'message' => $students->isEmpty() ? 'عفوا لا يوجد بيانات للعرض' : null,
-        'data'    => StudentResource::collection($students),
-    ]);
-}
     // ─────────────────────────────
     // STORE
     // ─────────────────────────────
-    public function store(StoreStudentRequest $request)
+    public function store(StoreStudentRequest $request): JsonResponse
     {
-        $data      = $request->validated();
-        $groupId   = $data['group_id'];
-        $courseIds = $data['course_ids'];
+        $data = $request->validated();
+
+        $groupId = $data['group_id'] ?? null;
         unset($data['group_id'], $data['course_ids']);
+
         $imagePath = null;
 
         DB::beginTransaction();
 
         try {
-            // رفع الصورة
+            // upload image
             if ($request->hasFile('face_image')) {
-                $imagePath          = $request->file('face_image')->store('students/faces', 'public');
+                $imagePath = $request->file('face_image')->store('students/faces', 'public');
                 $data['face_image'] = $imagePath;
             }
 
-            // إنشاء الطالب
+            // create student
             $student = Student::create($data);
 
-            // ربط الطالب بالجروب وكل الكورسات
-            foreach ($courseIds as $courseId) {
+            // attach group
+            $student->groups()->attach($groupId);
+
+            // get courses from group (SOURCE OF TRUTH)
+            $group = Group::with('courses')->findOrFail($groupId);
+
+            foreach ($group->courses as $course) {
                 $student->courseEnrollments()->create([
                     'group_id'    => $groupId,
-                    'course_id'   => $courseId,
+                    'course_id'   => $course->id,
                     'enrolled_at' => now(),
                 ]);
             }
 
-            // بعت الصورة للـ AI
+            // AI enroll
             $enrolled = $this->aiService->enrollFace(
                 $student->face_image,
                 $student->student_code
@@ -82,7 +90,10 @@ class StudentController extends Controller
 
             if (!$enrolled) {
                 DB::rollBack();
-                if ($imagePath) Storage::disk('public')->delete($imagePath);
+
+                if ($imagePath) {
+                    Storage::disk('public')->delete($imagePath);
+                }
 
                 return response()->json([
                     'status'  => false,
@@ -95,11 +106,15 @@ class StudentController extends Controller
             return response()->json([
                 'status'  => true,
                 'message' => 'تم إضافة الطالب بنجاح',
-                'data'    => new StudentResource($student->load('groups.course')),
+                'data'    => new StudentResource($student->load('groups.courses')),
             ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            if ($imagePath) Storage::disk('public')->delete($imagePath);
+
+            if ($imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
 
             return response()->json([
                 'status'  => false,
@@ -111,12 +126,12 @@ class StudentController extends Controller
     // ─────────────────────────────
     // SHOW
     // ─────────────────────────────
-    public function show(string $id)
+    public function show(string $id): JsonResponse
     {
         return response()->json([
             'status' => true,
             'data'   => new StudentResource(
-                Student::with('groups.course')->findOrFail($id)
+                Student::with('groups.courses')->findOrFail($id)
             ),
         ]);
     }
@@ -124,28 +139,50 @@ class StudentController extends Controller
     // ─────────────────────────────
     // UPDATE
     // ─────────────────────────────
-    public function update(UpdateStudentRequest $request, string $id)
+    public function update(UpdateStudentRequest $request, string $id): JsonResponse
     {
-        $student      = Student::findOrFail($id);
+        $student = Student::findOrFail($id);
+
+        $data = $request->validated();
+
+        $groupId = $data['group_id'] ?? null;
+        unset($data['group_id'], $data['course_ids']);
+
         $newImagePath = null;
-        $oldImage     = $student->face_image;
+        $oldImage = $student->face_image;
 
         DB::beginTransaction();
 
         try {
-            $data = $request->validated();
-            unset($data['student_code']);
-
-            // لو في تغيير في الجروب أو الكورسات
-            $groupId   = $data['group_id']   ?? null;
-            $courseIds = $data['course_ids'] ?? null;
-            unset($data['group_id'], $data['course_ids']);
-
+            // new image
             if ($request->hasFile('face_image')) {
-                $newImagePath       = $request->file('face_image')->store('students/faces', 'public');
+                $newImagePath = $request->file('face_image')->store('students/faces', 'public');
                 $data['face_image'] = $newImagePath;
             }
 
+            $student->update($data);
+
+            if ($groupId) {
+
+                // sync group
+                $student->groups()->sync([$groupId]);
+
+                // delete old enrollments
+                $student->courseEnrollments()->delete();
+
+                // rebuild enrollments from group
+                $group = Group::with('courses')->findOrFail($groupId);
+
+                foreach ($group->courses as $course) {
+                    $student->courseEnrollments()->create([
+                        'group_id'    => $groupId,
+                        'course_id'   => $course->id,
+                        'enrolled_at' => now(),
+                    ]);
+                }
+            }
+
+            // AI update face
             if ($newImagePath) {
                 $aiUpdated = $this->aiService->updateFace(
                     $newImagePath,
@@ -154,7 +191,8 @@ class StudentController extends Controller
 
                 if (!$aiUpdated) {
                     DB::rollBack();
-                    if ($newImagePath) Storage::disk('public')->delete($newImagePath);
+
+                    Storage::disk('public')->delete($newImagePath);
 
                     return response()->json([
                         'status'  => false,
@@ -163,23 +201,7 @@ class StudentController extends Controller
                 }
             }
 
-            // تحديث بيانات الطالب
-            $student->update($data);
-
-            // لو في تغيير في الكورسات أو الجروب
-            if ($courseIds !== null && $groupId !== null) {
-                // مسح التسجيلات القديمة وإضافة الجديدة
-                $student->courseEnrollments()->delete();
-
-                foreach ($courseIds as $courseId) {
-                    $student->courseEnrollments()->create([
-                        'group_id'    => $groupId,
-                        'course_id'   => $courseId,
-                        'enrolled_at' => now(),
-                    ]);
-                }
-            }
-
+            // delete old image
             if ($newImagePath && $oldImage && Storage::disk('public')->exists($oldImage)) {
                 Storage::disk('public')->delete($oldImage);
             }
@@ -189,11 +211,15 @@ class StudentController extends Controller
             return response()->json([
                 'status'  => true,
                 'message' => 'تم تعديل الطالب بنجاح',
-                'data'    => new StudentResource($student->fresh('groups.course')),
+                'data'    => $student->fresh('groups.courses'),
             ]);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            if ($newImagePath) Storage::disk('public')->delete($newImagePath);
+
+            if ($newImagePath) {
+                Storage::disk('public')->delete($newImagePath);
+            }
 
             return response()->json([
                 'status'  => false,
@@ -205,7 +231,7 @@ class StudentController extends Controller
     // ─────────────────────────────
     // DELETE
     // ─────────────────────────────
-    public function destroy(string $id)
+    public function destroy(string $id): JsonResponse
     {
         $student = Student::findOrFail($id);
 
@@ -229,6 +255,7 @@ class StudentController extends Controller
                 'status'  => true,
                 'message' => 'تم حذف الطالب بنجاح',
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,

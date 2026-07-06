@@ -19,8 +19,6 @@ class StartSessionRequest extends FormRequest
                 'exists:sessionschedules,id',
             ],
 
-            // ❌ شيلنا students — الباك إند بيجيبهم تلقائي من DB
-
             'start_time' => ['required', 'date'],
             'end_time'   => ['required', 'date', 'after:start_time'],
         ];
@@ -32,12 +30,12 @@ class StartSessionRequest extends FormRequest
             'session_schedule_id.required' => 'السيشن مطلوبة.',
             'session_schedule_id.exists'   => 'السيشن غير موجودة.',
 
-            'start_time.required'    => 'وقت البداية مطلوب.',
-            'start_time.date_format' => 'وقت البداية يجب أن يكون بصيغة YYYY-MM-DDTHH:MM:SS.',
+            'start_time.required' => 'وقت البداية مطلوب.',
+            'start_time.date'     => 'وقت البداية غير صالح.',
 
-            'end_time.required'    => 'وقت النهاية مطلوب.',
-            'end_time.date_format' => 'وقت النهاية يجب أن يكون بصيغة YYYY-MM-DDTHH:MM:SS.',
-            'end_time.after'       => 'وقت النهاية يجب أن يكون بعد البداية.',
+            'end_time.required'   => 'وقت النهاية مطلوب.',
+            'end_time.date'       => 'وقت النهاية غير صالح.',
+            'end_time.after'      => 'وقت النهاية يجب أن يكون بعد البداية.',
         ];
     }
 }

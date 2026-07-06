@@ -24,9 +24,9 @@ class Group extends Model
         'academic_year',
     ];
 
-    public function course(): BelongsTo
+    public function courses()
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsToMany(Course::class);
     }
 
     public function sessions(): HasMany

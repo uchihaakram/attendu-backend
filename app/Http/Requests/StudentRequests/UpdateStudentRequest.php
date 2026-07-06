@@ -24,10 +24,13 @@ class UpdateStudentRequest extends FormRequest
             'phone_number' => ['nullable', 'string'],
             'gender'       => ['nullable', 'in:male,female'],
             'national_id'  => ['nullable', 'string'],
-            'registered_at'=> ['nullable', 'date'],
+            'registered_at' => ['nullable', 'date'],
             'group_id'     => ['nullable', 'exists:groups,id'],
-            'course_ids'   => ['sometimes', 'array', 'min:1'],
+
+            // نفس الشيء (نخليه بدون تأثير)
+            'course_ids'   => ['sometimes', 'array'],
             'course_ids.*' => ['exists:courses,id'],
+
             'face_image'   => [
                 'nullable',
                 'image',

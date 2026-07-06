@@ -27,9 +27,9 @@ class Course extends Model
         'end_date' => 'date',
     ];
 
-    public function groups(): HasMany
+    public function groups()
     {
-        return $this->hasMany(Group::class);
+        return $this->belongsToMany(Group::class);
     }
 
     public function sessions(): HasMany
