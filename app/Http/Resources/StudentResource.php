@@ -28,7 +28,7 @@ class StudentResource extends JsonResource
                 : null,
             'groups'       => $this->groups->map(fn($group) => [
                 'group_name'    => $group->group_name,
-                'course_name'   => $group->course?->course_name,
+                'courses'       => $group->courses->pluck('course_name'), // بقت array بدل string واحد
                 'academic_year' => $group->academic_year,
             ]),
         ];

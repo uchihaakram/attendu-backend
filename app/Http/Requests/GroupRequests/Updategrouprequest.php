@@ -17,10 +17,6 @@ class UpdateGroupRequest extends FormRequest
         $id = $this->route('id');
 
         return [
-            'course_id' => [
-                'sometimes',
-                'exists:courses,id',
-            ],
 
             'group_name' => [
                 'sometimes',
@@ -45,7 +41,6 @@ class UpdateGroupRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'course_id.exists'  => 'المقرر غير موجود.',
             'group_code.unique' => 'كود الفرقة مستخدم بالفعل.',
             'academic_year.in'  => 'السنة الدراسية يجب أن تكون first أو second أو third أو fourth.',
         ];

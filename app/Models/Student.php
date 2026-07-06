@@ -20,14 +20,12 @@ class Student extends Model
     ];
 
     // Groups (pivot student_group)
+    // Groups (via course_enrollments)
     public function groups(): BelongsToMany
     {
-        return $this->belongsToMany(
-            Group::class,
-            'group_student',
-            'student_id',
-            'group_id'
-        )->withTimestamps();
+        return $this->belongsToMany(Group::class, 'course_enrollments')
+            ->withTimestamps()
+            ->distinct();
     }
 
     // Course Enrollments (IMPORTANT FIX)

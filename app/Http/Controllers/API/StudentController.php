@@ -68,9 +68,6 @@ class StudentController extends Controller
             // create student
             $student = Student::create($data);
 
-            // attach group
-            $student->groups()->attach($groupId);
-
             // get courses from group (SOURCE OF TRUTH)
             $group = Group::with('courses')->findOrFail($groupId);
 
@@ -163,10 +160,6 @@ class StudentController extends Controller
             $student->update($data);
 
             if ($groupId) {
-
-                // sync group
-                $student->groups()->sync([$groupId]);
-
                 // delete old enrollments
                 $student->courseEnrollments()->delete();
 
