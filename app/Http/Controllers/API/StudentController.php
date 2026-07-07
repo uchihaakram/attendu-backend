@@ -12,6 +12,7 @@ use App\Services\AIService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
@@ -49,6 +50,19 @@ class StudentController extends Controller
     // ─────────────────────────────
     public function store(StoreStudentRequest $request): JsonResponse
     {
+        Log::info('Store Student Request', [
+            'request' => $request->all(),
+        ]);
+
+        Log::info('Groups Data', [
+            'groups' => $request->input('groups'),
+        ]);
+        Log::info('Raw Request Body', [
+            'content' => $request->getContent(),
+        ]);
+        Log::info('FULL REQUEST', [
+            'data' => $request->all()
+        ]);
         $data = $request->validated();
 
         $groupId = $data['group_id'] ?? null;
@@ -71,12 +85,21 @@ class StudentController extends Controller
             // get courses from group (SOURCE OF TRUTH)
             $group = Group::with('courses')->findOrFail($groupId);
 
-            foreach ($group->courses as $course) {
+            if ($group->courses->isEmpty()) {
+                // مجموعة بدون مواد - سجله بس بربط بالمجموعة
                 $student->courseEnrollments()->create([
                     'group_id'    => $groupId,
-                    'course_id'   => $course->id,
+                    'course_id'   => null,
                     'enrolled_at' => now(),
                 ]);
+            } else {
+                foreach ($group->courses as $course) {
+                    $student->courseEnrollments()->create([
+                        'group_id'    => $groupId,
+                        'course_id'   => $course->id,
+                        'enrolled_at' => now(),
+                    ]);
+                }
             }
 
             // AI enroll
@@ -105,7 +128,6 @@ class StudentController extends Controller
                 'message' => 'تم إضافة الطالب بنجاح',
                 'data'    => new StudentResource($student->load('groups.courses')),
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -206,7 +228,6 @@ class StudentController extends Controller
                 'message' => 'تم تعديل الطالب بنجاح',
                 'data'    => $student->fresh('groups.courses'),
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -248,7 +269,6 @@ class StudentController extends Controller
                 'status'  => true,
                 'message' => 'تم حذف الطالب بنجاح',
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,

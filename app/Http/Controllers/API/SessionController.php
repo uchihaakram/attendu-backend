@@ -112,12 +112,8 @@ class SessionController extends Controller
             'students'            => $students,
             'min_attend'          => $policy->min_attend,
             'max_attend'          => $policy->max_attend,
-            'start_time'          => Carbon::parse($request->start_time)
-                ->utc()
-                ->format('Y-m-d\TH:i:sP'),
-            'end_time'            => Carbon::parse($request->end_time)
-                ->utc()
-                ->format('Y-m-d\TH:i:sP'),
+            'start_time' => now('UTC')->toIso8601String(),
+            'end_time'   => now('UTC')->addHours(2)->toIso8601String(),
         ];
 
         $aiResponse = $this->aiService->startSession($payload);

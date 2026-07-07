@@ -56,6 +56,9 @@ class ReportController extends Controller
             $student  = $enrollment->student;
             $course   = $enrollment->course;
             $group    = $enrollment->group;
+            if (!$course || !$group) {
+                return null;
+            }
 
             // جلب كل الجلسات اللي خاصة بالكورس والجروب ده
             $sessionsQuery = Session::where('course_id', $course->id)
@@ -101,7 +104,7 @@ class ReportController extends Controller
                 'total_sessions'    => $totalSessions,
                 'attendance_rate'   => $attendanceRate,
             ];
-        });
+        })->filter()->values();;
 
         return response()->json([
             'success' => true,
