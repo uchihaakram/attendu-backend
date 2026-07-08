@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\API;
+use Illuminate\Support\Facades\Log;
 
 use App\Http\Controllers\Controller;
 use App\Mail\WarningNotificationMail;
@@ -10,7 +11,6 @@ use App\Models\CourseEnrollment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Attendance;
 use App\Models\AttendancePolicy;
@@ -138,7 +138,10 @@ class WarningController extends Controller
                 );
                 $warning->update(['email_sent_at' => now()]);
             } catch (\Exception $e) {
-                Log::error('Warning email failed: ' . $e->getMessage());
+                Log::error('فشل إرسال الإيميل للتحذير', [
+                    'warning_id' => $warning->id,
+                    'error'      => $e->getMessage(),
+                ]);
             }
         }
 

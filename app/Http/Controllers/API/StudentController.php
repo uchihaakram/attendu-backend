@@ -12,7 +12,6 @@ use App\Services\AIService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
@@ -50,19 +49,7 @@ class StudentController extends Controller
     // ─────────────────────────────
     public function store(StoreStudentRequest $request): JsonResponse
     {
-        Log::info('Store Student Request', [
-            'request' => $request->all(),
-        ]);
 
-        Log::info('Groups Data', [
-            'groups' => $request->input('groups'),
-        ]);
-        Log::info('Raw Request Body', [
-            'content' => $request->getContent(),
-        ]);
-        Log::info('FULL REQUEST', [
-            'data' => $request->all()
-        ]);
         $data = $request->validated();
 
         $groupId = $data['group_id'] ?? null;

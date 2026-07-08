@@ -10,7 +10,6 @@ use App\Http\Requests\AttendanceRequests\StoreAttendanceRequest;
 use App\Http\Requests\AttendanceRequests\UpdateAttendanceRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use App\Services\WarningService;
 
 class AttendanceController extends Controller
@@ -42,18 +41,11 @@ class AttendanceController extends Controller
                 }
             });
         } catch (\Exception $e) {
-            Log::error('storeAttendance transaction failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'فشل تسجيل الحضور',
+                'message' => 'حدث خطأ أثناء تسجيل الحضور.',
+                'error'   => $e->getMessage(),
             ], 500);
-        }
-
-        if (!empty($notFound)) {
-            Log::warning('storeAttendance: student_codes not found in DB', [
-                'session_schedule_id' => $sessionId,
-                'missing_codes'       => $notFound,
-            ]);
         }
 
         return response()->json([
