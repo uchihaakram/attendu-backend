@@ -3,11 +3,18 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WarningNotificationMail;
 use App\Models\Warning;
 use App\Models\Student;
 use App\Models\CourseEnrollment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Models\Attendance;
+use App\Models\AttendancePolicy;
+use App\Models\Session;
 
 class WarningController extends Controller
 {
@@ -25,8 +32,8 @@ class WarningController extends Controller
             $search = $request->search;
             $query->whereHas('student', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name',  'like', "%{$search}%")
-                  ->orWhere('student_code', 'like', "%{$search}%");
+                    ->orWhere('last_name',  'like', "%{$search}%")
+                    ->orWhere('student_code', 'like', "%{$search}%");
             });
         }
 
@@ -43,7 +50,7 @@ class WarningController extends Controller
                 'course_name'      => $warning->course->course_name,
                 'group_name'       => $group?->group_name ?? '—',
                 'academic_year'    => $group?->academic_year ?? '—',
-                'enrollment_status'=> 'قيد نشط',
+                'enrollment_status' => 'قيد نشط',
                 'warning_type'     => $warning->warning_type,
                 'warning_type_label' => $warning->warning_type_label,
                 'warning_reason'   => $warning->warning_reason,
@@ -79,7 +86,6 @@ class WarningController extends Controller
             ], 404);
         }
 
-        // التحقق إن الطالب مسجل في الكورس ده
         $enrolled = CourseEnrollment::where('student_id', $studentId)
             ->where('course_id', $request->course_id)
             ->exists();
@@ -91,26 +97,50 @@ class WarningController extends Controller
             ], 422);
         }
 
-        // تحديد نوع التحذير بناءً على عدد التحذيرات السابقة
-        $warningsCount = Warning::where('student_id', $studentId)
-            ->where('course_id', $request->course_id)
-            ->count();
+        $warning = DB::transaction(function () use ($request, $studentId) {
 
-        $warningType = match(true) {
-            $warningsCount === 0 => 'first_warning',
-            $warningsCount === 1 => 'second_warning',
-            default              => 'final_warning',
-        };
+            $warningsCount = Warning::where('student_id', $studentId)
+                ->where('course_id', $request->course_id)
+                ->lockForUpdate()
+                ->count();
 
-        $warning = Warning::create([
-            'student_id'     => $studentId,
-            'course_id'      => $request->course_id,
-            'warning_type'   => $warningType,
-            'warning_reason' => $request->warning_reason,
-            'status'         => 'active',
-        ]);
+            $warningType = match (true) {
+                $warningsCount === 0 => 'first_warning',
+                $warningsCount === 1 => 'second_warning',
+                default              => 'final_warning',
+            };
+
+            return Warning::create([
+                'student_id'     => $studentId,
+                'course_id'      => $request->course_id,
+                'warning_type'   => $warningType,
+                'warning_reason' => $request->warning_reason,
+                'status'         => 'active',
+            ]);
+        });
 
         $warning->load(['student', 'course']);
+        $sessionIds = Session::where('course_id', $request->course_id)->pluck('id');
+
+        $absentCount = Attendance::where('student_id', $studentId)
+            ->whereIn('session_schedule_id', $sessionIds)
+            ->where('status', 'absent')
+            ->count();
+
+        $maxAllowed = AttendancePolicy::where('course_id', $request->course_id)
+            ->value('max_absences_allowed');
+        // إرسال الإيميل مرة واحدة بس، ولو فشل الإرسال منمنعش الـ response من النجاح
+
+        if (!$warning->email_sent_at) {
+            try {
+                Mail::to($warning->student->email)->send(
+                    new WarningNotificationMail($warning, $absentCount, $maxAllowed)
+                );
+                $warning->update(['email_sent_at' => now()]);
+            } catch (\Exception $e) {
+                Log::error('Warning email failed: ' . $e->getMessage());
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -125,10 +155,10 @@ class WarningController extends Controller
                 'warning_reason'     => $warning->warning_reason,
                 'status'             => $warning->status,
                 'status_label'       => $warning->status_label,
+                'email_sent'         => (bool) $warning->email_sent_at,
             ],
         ], 201);
     }
-
     /**
      * DELETE /api/warnings/{id}
      * حذف تحذير

@@ -22,29 +22,34 @@ class SessionController extends Controller
     // GET ALL SESSIONS
     // ─────────────────────────────
     public function getSessions(Request $request): JsonResponse
-    {
-        $query = Session::with(['course', 'group', 'instructors']);
+{
+    $query = Session::with(['course', 'group', 'instructors']);
 
-        if ($request->filled('search')) {
-            $query->whereHas('instructors', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%');
-            });
-        }
-
-        if ($request->filled('session_type')) {
-            $query->where('session_type', $request->session_type);
-        }
-
-        if ($request->filled('day')) {
-            $query->where('day', $request->day);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data'    => $query->get(),
-        ]);
+    if ($request->user()->role !== 'admin') {
+        $query->whereHas('instructors', function ($q) use ($request) {
+            $q->where('user_id', $request->user()->id);
+        });
     }
 
+    if ($request->filled('search')) {
+        $query->whereHas('instructors', function ($q) use ($request) {
+            $q->where('name', 'like', '%' . $request->search . '%');
+        });
+    }
+
+    if ($request->filled('session_type')) {
+        $query->where('session_type', $request->session_type);
+    }
+
+    if ($request->filled('day')) {
+        $query->where('day', $request->day);
+    }
+
+    return response()->json([
+        'success' => true,
+        'data'    => $query->get(),
+    ]);
+}
     // ─────────────────────────────
     // STORE SESSION
     // ─────────────────────────────
@@ -85,6 +90,7 @@ class SessionController extends Controller
     {
         $session = Session::with(['attendancePolicy', 'group.students'])
             ->findOrFail($request->session_schedule_id);
+        $this->authorize('start', $session);
 
         $policy = $session->attendancePolicy;
 
@@ -112,8 +118,8 @@ class SessionController extends Controller
             'students'            => $students,
             'min_attend'          => $policy->min_attend,
             'max_attend'          => $policy->max_attend,
-            'start_time' => now('UTC')->toIso8601String(),//مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
-            'end_time'   => now('UTC')->addHours(2)->toIso8601String(),//مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
+            'start_time' => now('UTC')->toIso8601String(), //مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
+            'end_time'   => now('UTC')->addHours(2)->toIso8601String(), //مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
         ];
 
         $aiResponse = $this->aiService->startSession($payload);
@@ -189,6 +195,8 @@ class SessionController extends Controller
     {
         $session = Session::with(['course', 'group', 'instructors'])
             ->findOrFail($id);
+
+        $this->authorize('view', $session);   // ← ضيف السطر ده
 
         $students = $session->group->students()->get();
 

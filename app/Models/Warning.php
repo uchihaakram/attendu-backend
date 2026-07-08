@@ -13,11 +13,13 @@ class Warning extends Model
         'warning_type',
         'warning_reason',
         'status',
+        'email_sent_at',
     ];
 
     protected $casts = [
-        'warning_type' => 'string',
-        'status'       => 'string',
+        'warning_type'  => 'string',
+        'status'        => 'string',
+        'email_sent_at' => 'datetime',
     ];
 
     // العلاقات
@@ -34,7 +36,7 @@ class Warning extends Model
     // Helper: الاسم العربي لنوع التحذير
     public function getWarningTypeLabelAttribute(): string
     {
-        return match($this->warning_type) {
+        return match ($this->warning_type) {
             'first_warning'  => 'تحذير أول',
             'second_warning' => 'تحذير ثاني',
             'final_warning'  => 'تحذير نهائي',
@@ -45,13 +47,13 @@ class Warning extends Model
     // Helper: الاسم العربي للحالة
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'active'   => 'قيد نشط',
             'resolved' => 'تم الحل',
             default    => $this->status,
         };
     }
-     public function session(): BelongsTo
+    public function session(): BelongsTo
     {
         return $this->belongsTo(Session::class);
     }
