@@ -15,6 +15,7 @@ class Student extends Model
 
     protected $guarded = [];
 
+
     protected $casts = [
         'registered_at' => 'datetime',
     ];

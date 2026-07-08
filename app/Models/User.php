@@ -17,13 +17,15 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable,HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
+
+
     protected $fillable = [
         'name',
         'email',
@@ -31,6 +33,7 @@ class User extends Authenticatable
         'gender',
         'role',
         'password',
+        'student_id',
     ];
 
     /**
@@ -75,5 +78,9 @@ class User extends Authenticatable
     public function sessionInstructors(): HasMany
     {
         return $this->hasMany(SessionInstructor::class);
+    }
+    public function student(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Student::class);
     }
 }

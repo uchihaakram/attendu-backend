@@ -2,12 +2,16 @@
 
 use App\Http\Controllers\API\AttendanceController;
 use App\Http\Controllers\API\AttendancePolicyController;
+use App\Http\Controllers\API\Auth\StudentAuthController;
 use App\Http\Controllers\API\CourseController;
 use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\GroupController;
 use App\Http\Controllers\API\SessionController;
 use App\Http\Controllers\API\StudentController;
 use App\Http\Controllers\API\WarningController;
+use App\Http\Controllers\API\StudentPortalController;
+
+
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,8 +21,8 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 // Student API routes
 Route::middleware(['auth:sanctum', 'role:admin', 'json.unicode'])->group(function () {
-    Route::apiResource('students', StudentController::class);
-    Route::post('students/{student}', [StudentController::class, 'update']);
+    Route::apiResource('students', StudentController::class)->whereNumber('student');
+    Route::post('students/{student}', [StudentController::class, 'update'])->whereNumber('student');
 });
 // Session API routes
 Route::middleware(['auth:sanctum', 'json.unicode'])->group(function () {
@@ -82,5 +86,13 @@ Route::middleware(['auth:sanctum', 'role:admin,instructor', 'json.unicode'])->gr
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 });
 Route::middleware(['auth:sanctum', 'role:admin,instructor', 'json.unicode'])->group(function () {
-Route::get('/sessions/{id}/live', [SessionController::class, 'liveSession']);
+    Route::get('/sessions/{id}/live', [SessionController::class, 'liveSession']);
+});
+
+
+Route::middleware(['auth:sanctum', 'role:student', 'json.unicode'])->group(function () {
+    Route::get('/student/sessions',   [StudentPortalController::class, 'sessions']);
+    Route::get('/student/attendance', [StudentPortalController::class, 'attendance']);
+    Route::get('/student/warnings',   [StudentPortalController::class, 'warnings']);
+    Route::post('/students/profile', [StudentAuthController::class, 'updateProfile']);
 });

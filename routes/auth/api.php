@@ -4,6 +4,8 @@ use App\Http\Controllers\API\ReportController;
 use App\Http\Controllers\API\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\API\Auth\StudentAuthController;
+
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -32,3 +34,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 Route::get('/reports/students',      [ReportController::class, 'index']);
 Route::get('/reports/students/{id}', [ReportController::class, 'show']);
 });
+
+Route::post('/students/register', [StudentAuthController::class, 'register']);
+
