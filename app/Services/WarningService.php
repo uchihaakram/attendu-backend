@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Mail\WarningNotificationMail;
 use App\Models\Attendance;
 use App\Models\AttendancePolicy;
 use App\Models\CourseEnrollment;
 use App\Models\Session;
 use App\Models\Warning;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class WarningService
 {
@@ -73,13 +75,35 @@ class WarningService
 
             $reason = "تجاوز الحد المسموح به من الغيابات ({$absentCount} غياب من أصل {$maxAbsences} مسموح)";
 
-            Warning::create([
+            $warning = Warning::create([
                 'student_id'     => $studentId,
                 'course_id'      => $courseId,
                 'warning_type'   => $warningType,
                 'warning_reason' => $reason,
                 'status'         => 'active',
             ]);
+
+            $warning->load(['student', 'course']);
+            $sessionIds = Session::where('course_id', $courseId)->pluck('id');
+
+            $warningAbsentCount = Attendance::where('student_id', $studentId)
+                ->whereIn('session_schedule_id', $sessionIds)
+                ->where('status', 'absent')
+                ->count();
+
+            if (!$warning->email_sent_at) {
+                try {
+                    Mail::to($warning->student->email)->send(
+                        new WarningNotificationMail($warning, $warningAbsentCount, $maxAbsences)
+                    );
+                    $warning->update(['email_sent_at' => now()]);
+                } catch (\Exception $e) {
+                    Log::error('فشل إرسال الإيميل للتحذير', [
+                        'warning_id' => $warning->id,
+                        'error'      => $e->getMessage(),
+                    ]);
+                }
+            }
 
             Log::info("Warning created automatically", [
                 'student_id'   => $studentId,

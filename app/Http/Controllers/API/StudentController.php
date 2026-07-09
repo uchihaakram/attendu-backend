@@ -58,6 +58,7 @@ class StudentController extends Controller
         unset($data['group_id'], $data['course_ids']);
 
         $imagePath = null;
+        $userCreated = false;
 
         DB::beginTransaction();
 
@@ -89,6 +90,20 @@ class StudentController extends Controller
                         'enrolled_at' => now(),
                     ]);
                 }
+            }
+            try {
+                User::create([
+                    'name'       => $student->first_name . ' ' . $student->last_name,
+                    'email'      => $student->email,
+                    'phone'      => $student->phone_number,
+                    'gender'     => $student->gender,
+                    'role'       => 'student',
+                    'student_id' => $student->id,
+                    'password'   => Hash::make($student->national_id),
+                ]);
+                $userCreated = true;
+            } catch (\Exception $e) {
+                $userCreated = false;
             }
 
             // AI enroll
