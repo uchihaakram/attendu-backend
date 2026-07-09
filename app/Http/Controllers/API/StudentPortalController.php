@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\CourseEnrollment;
 use App\Models\Session;
+use App\Models\Student;
 use App\Models\Warning;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -96,4 +97,33 @@ class StudentPortalController extends Controller
 
         return response()->json(['success' => true, 'data' => $warnings]);
     }
+    // app/Http/Controllers/API/Auth/StudentAuthController.php
+
+public function profile(Request $request): JsonResponse
+{
+    $student = Student::with('groups.courses')
+        ->findOrFail($request->user()->student_id);
+
+    return response()->json([
+        'status' => true,
+        'data'   => [
+            'id'           => $student->id,
+            'first_name'   => $student->first_name,
+            'last_name'    => $student->last_name,
+            'student_code' => $student->student_code,
+            'email'        => $student->email,
+            'phone_number' => $student->phone_number,
+            'gender'       => $student->gender,
+            'national_id'  => $student->national_id,
+            'face_image'   => $student->face_image
+                ? asset('storage/' . $student->face_image)
+                : null,
+            'groups'       => $student->groups->map(fn($group) => [
+                'group_name'    => $group->group_name,
+                'courses'       => $group->courses->pluck('course_name'),
+                'academic_year' => $group->academic_year,
+            ]),
+        ],
+    ]);
+}
 }

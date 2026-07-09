@@ -92,7 +92,8 @@ Route::middleware(['auth:sanctum', 'role:admin,instructor', 'json.unicode'])->gr
 
 Route::middleware(['auth:sanctum', 'role:student', 'json.unicode'])->group(function () {
     Route::get('/student/sessions',   [StudentPortalController::class, 'sessions']);
-    Route::get('/student/attendance', [StudentPortalController::class, 'attendance']);
+    Route::get('/student/attendances', [StudentPortalController::class, 'attendance']);
     Route::get('/student/warnings',   [StudentPortalController::class, 'warnings']);
-    Route::post('/students/profile', [StudentAuthController::class, 'updateProfile']);
+    Route::get('/student/profile', [StudentPortalController::class, 'profile']);
+    Route::post('/student/profile', [StudentAuthController::class, 'updateProfile']);
 });
