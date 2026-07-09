@@ -112,15 +112,15 @@ class SessionController extends Controller
                 'message' => 'لا يوجد طلاب مسجلين في هذه الفرقة',
             ], 422);
         }
+        $duration = $session->start_time->diffInMinutes($session->end_time);
         $payload = [
             'session_schedule_id' => (string) $session->id,
             'students'            => $students,
             'min_attend'          => $policy->min_attend,
             'max_attend'          => $policy->max_attend,
-            'start_time' => $request->start_time->toIso8601String(), //مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
-            'end_time'   => $request->end_time->toIso8601String(), //مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
+            'start_time' =>now('UTC') ->toIso8601String(),
+            'end_time'   =>now('UTC')->addMinutes($duration)->toIso8601String(),
         ];
-
         $aiResponse = $this->aiService->startSession($payload);
 
         if (!$aiResponse) {
