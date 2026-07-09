@@ -112,14 +112,13 @@ class SessionController extends Controller
                 'message' => 'لا يوجد طلاب مسجلين في هذه الفرقة',
             ], 422);
         }
-
         $payload = [
             'session_schedule_id' => (string) $session->id,
             'students'            => $students,
             'min_attend'          => $policy->min_attend,
             'max_attend'          => $policy->max_attend,
-            'start_time' => now('UTC')->toIso8601String(), //مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
-            'end_time'   => now('UTC')->addHours(2)->toIso8601String(), //مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
+            'start_time' => $request->start_time->toIso8601String(), //مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
+            'end_time'   => $request->end_time->toIso8601String(), //مؤقتا عشان عليا النعمه معارف التايم المفروض يوصل للموديل المعرص دا ازاي
         ];
 
         $aiResponse = $this->aiService->startSession($payload);

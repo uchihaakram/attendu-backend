@@ -1,5 +1,4 @@
 <?php
-// database/migrations/2026_07_09_000001_add_student_role_to_users_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -17,17 +16,23 @@ return new class extends Migration
             $table->foreignId('student_id')
                 ->nullable()
                 ->after('role')
-                ->constrained('students')
+                ->references('id')
+                ->on('students')
                 ->nullOnDelete();
         });
     }
 
-    public function down(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('student_id');
-        });
+ public function down(): void
+{
+    Schema::table('users', function (Blueprint $table) {
 
-        DB::statement("ALTER TABLE users MODIFY role ENUM('admin','instructor') DEFAULT 'instructor'");
-    }
+        if (Schema::hasColumn('users', 'student_id')) {
+            $table->dropForeign(['student_id']);
+            $table->dropColumn('student_id');
+        }
+
+    });
+
+    DB::statement("ALTER TABLE users MODIFY role ENUM('admin','instructor') DEFAULT 'instructor'");
+}
 };

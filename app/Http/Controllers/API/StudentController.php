@@ -13,6 +13,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
 {
@@ -149,6 +151,7 @@ class StudentController extends Controller
     {
         $student = Student::findOrFail($id);
 
+
         $data = $request->validated();
 
         $groupId = $data['group_id'] ?? null;
@@ -167,6 +170,7 @@ class StudentController extends Controller
             }
 
             $student->update($data);
+
 
             if ($groupId) {
                 // delete old enrollments
@@ -249,6 +253,8 @@ class StudentController extends Controller
             if ($student->face_image && Storage::disk('public')->exists($student->face_image)) {
                 Storage::disk('public')->delete($student->face_image);
             }
+
+
 
             $student->delete();
 

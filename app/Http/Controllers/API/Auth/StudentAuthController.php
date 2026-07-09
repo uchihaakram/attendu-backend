@@ -45,6 +45,7 @@ class StudentAuthController extends Controller
                 'national_id'  => $data['national_id'],
                 'face_image'   => $imagePath,
                 'registered_at' => now(),
+
             ]);
 
             // ربط الطالب بالجروب + المواد بتاعتها (نفس منطق StudentController)
